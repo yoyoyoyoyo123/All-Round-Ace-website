@@ -1,0 +1,255 @@
+/* =============================================
+   Scene 2: The SUITS
+   ============================================= */
+
+.suits {
+  position: relative;
+  width: 100vw;
+  min-height: 100vh;
+  background: var(--color-black);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 6rem 0 4rem;
+}
+
+/* Subtle radial vignette for depth */
+.suits::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 70% 60% at 50% 55%,
+    rgba(100, 0, 0, 0.12) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+/* ── Section header ── */
+.suits__header {
+  text-align: center;
+  margin-bottom: 5rem;
+  z-index: 2;
+}
+
+.suits__scene-label {
+  font-family: var(--font-heading);
+  font-size: clamp(0.65rem, 0.85vw, 0.8rem);
+  letter-spacing: 0.45em;
+  color: var(--color-red);
+  margin-bottom: 0.5rem;
+}
+
+.suits__title {
+  font-family: var(--font-heading);
+  font-size: clamp(4.5rem, 9vw, 9rem);
+  line-height: 0.88;
+  color: var(--color-white);
+  letter-spacing: 0.05em;
+  margin-bottom: 0.8rem;
+}
+
+.suits__tagline {
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: clamp(0.9rem, 1.2vw, 1.1rem);
+  color: rgba(255, 255, 255, 0.3);
+  letter-spacing: 0.12em;
+}
+
+/* ── Hand container ── */
+.suits__hand {
+  position: relative;
+  width: clamp(170px, 19vw, 275px);
+  height: clamp(245px, 27vw, 390px);
+  z-index: 2;
+}
+
+/* ── Individual card ── */
+.suits__card {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-card);
+  background: linear-gradient(150deg, #200505 0%, #0e0e0e 100%);
+  border: 1px solid rgba(204, 0, 0, 0.25);
+  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: clamp(12px, 1.4vw, 18px);
+  cursor: pointer;
+  transform-origin: bottom center;
+  /* Only transition non-transform properties — GSAP owns all transforms */
+  transition: border-color 0.35s ease, box-shadow 0.35s ease;
+}
+
+/* Inner border texture */
+.suits__card::before {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border-radius: 8px;
+  border: 1px solid rgba(204, 0, 0, 0.08);
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 8px,
+    rgba(204, 0, 0, 0.025) 8px,
+    rgba(204, 0, 0, 0.025) 9px
+  );
+  pointer-events: none;
+}
+
+.suits__card.is-hovered {
+  border-color: rgba(204, 0, 0, 0.55);
+  box-shadow: 0 28px 64px rgba(0, 0, 0, 0.85), 0 0 32px rgba(204, 0, 0, 0.12);
+  z-index: 10;
+}
+
+.suits__card.is-joker {
+  background: linear-gradient(150deg, #1a1505 0%, #0c0c08 100%);
+  border-color: rgba(201, 168, 76, 0.3);
+}
+
+.suits__card.is-joker::before {
+  border-color: rgba(201, 168, 76, 0.06);
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 8px,
+    rgba(201, 168, 76, 0.02) 8px,
+    rgba(201, 168, 76, 0.02) 9px
+  );
+}
+
+.suits__card.is-joker.is-hovered {
+  border-color: rgba(201, 168, 76, 0.7);
+  box-shadow: 0 28px 64px rgba(0, 0, 0, 0.85), 0 0 32px rgba(201, 168, 76, 0.15);
+}
+
+/* ── Corner notation ── */
+.suits__corner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.1;
+  flex-shrink: 0;
+}
+
+.suits__corner--br {
+  align-self: flex-end;
+  transform: rotate(180deg);
+}
+
+.suits__rank {
+  font-family: var(--font-heading);
+  font-size: clamp(1rem, 1.4vw, 1.5rem);
+  color: rgba(255, 255, 255, 0.65);
+  letter-spacing: 0;
+  line-height: 1;
+  display: block;
+}
+
+.suits__suit-sm {
+  font-size: clamp(0.8rem, 1.1vw, 1.1rem);
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.65);
+  display: block;
+}
+
+/* Red card colours */
+.suits__card.is-red .suits__rank,
+.suits__card.is-red .suits__suit-sm {
+  color: var(--color-red);
+}
+
+/* Joker corner colours */
+.suits__card.is-joker .suits__rank {
+  font-size: clamp(0.55rem, 0.75vw, 0.72rem);
+  letter-spacing: 0.08em;
+  color: var(--color-gold);
+}
+.suits__card.is-joker .suits__suit-sm {
+  color: var(--color-gold);
+}
+
+/* ── Card face (center content) ── */
+.suits__face {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  text-align: center;
+}
+
+.suits__suit-lg {
+  font-size: clamp(3rem, 4.5vw, 5.5rem);
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.8);
+  transition: transform 0.35s var(--ease-out);
+}
+
+.suits__card.is-red   .suits__suit-lg { color: var(--color-red); }
+.suits__card.is-joker .suits__suit-lg { color: var(--color-gold); }
+
+.suits__card.is-hovered .suits__suit-lg {
+  transform: translateY(-10px);
+}
+
+.suits__info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.suits__card-title {
+  font-family: var(--font-heading);
+  font-size: clamp(0.85rem, 1.2vw, 1.25rem);
+  letter-spacing: 0.07em;
+  color: var(--color-white);
+  line-height: 1.25;
+}
+
+.suits__card-sub {
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: clamp(0.65rem, 0.85vw, 0.82rem);
+  color: rgba(255, 255, 255, 0.35);
+  letter-spacing: 0.06em;
+}
+
+/* ── Description text — revealed on hover ── */
+.suits__desc {
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: clamp(0.62rem, 0.78vw, 0.78rem);
+  line-height: 1.65;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0);
+  transition: color 0.35s ease;
+  max-width: 88%;
+}
+
+.suits__card.is-hovered .suits__desc {
+  color: rgba(255, 255, 255, 0.52);
+}
+
+/* ── Bottom caption ── */
+.suits__caption {
+  position: absolute;
+  bottom: 2.5vh;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: clamp(0.65rem, 0.8vw, 0.78rem);
+  color: rgba(255, 255, 255, 0.2);
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  z-index: 2;
+}
