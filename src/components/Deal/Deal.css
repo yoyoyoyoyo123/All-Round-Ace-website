@@ -1,168 +1,253 @@
 /* =============================================
-   Scene 1: The DEAL — 發牌
+   Scene 1: The DEAL — 發牌（完整版）
    ============================================= */
 
+/* ── Section ── */
 .deal {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 3rem;
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
   background: var(--color-black);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
 }
 
-/* ── Table ── */
+/* ── Full-screen table circle ── */
 .deal__table {
-  position: relative;
-  width: min(72vw, 72vh);
-  height: min(72vw, 72vh);
+  position: absolute;
+  inset: 0;
   will-change: transform, opacity;
 }
 
 .deal__felt {
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 110vw;
+  height: 110vw;
   border-radius: 50%;
-  background: radial-gradient(ellipse at 40% 35%, #1a2e1a 0%, #0c1c0c 55%, #060e06 100%);
-  border: 3px solid rgba(255, 255, 255, 0.08);
+  background: radial-gradient(
+    ellipse 70% 60% at 50% 48%,
+    #1a0303 0%,
+    #120202 40%,
+    #0a0a0a 75%,
+    #050505 100%
+  );
+  border: 2px solid rgba(204, 0, 0, 0.18);
   box-shadow:
-    0 0 0 8px rgba(0, 0, 0, 0.6),
-    0 0 0 10px rgba(255, 255, 255, 0.04),
-    0 30px 80px rgba(0, 0, 0, 0.8),
-    inset 0 0 60px rgba(0, 0, 0, 0.5);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.6rem;
+    inset 0 0 120px rgba(0,0,0,0.7),
+    0 0 0 1px rgba(255,255,255,0.03);
 }
 
-.deal__felt-ring {
+/* ── Center logo ── */
+.deal__center {
   position: absolute;
-  inset: 6%;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
   pointer-events: none;
 }
 
-.deal__felt-label {
-  font-family: var(--font-heading);
-  font-size: clamp(0.65rem, 1.2vw, 0.9rem);
-  letter-spacing: 0.35em;
-  color: rgba(201, 168, 76, 0.35);
-  user-select: none;
+.deal__logo {
+  width: clamp(180px, 22vw, 320px);
+  filter: brightness(0) invert(1);
+  opacity: 0.12;
 }
 
-/* ── Card Piles ── */
+/* ── Source deck (dealer position — bottom-right corner) ── */
+.deal__deck {
+  position: absolute;
+  bottom: 5vh;
+  right: 20vw;
+  width: clamp(52px, 5.5vw, 74px);
+  height: clamp(76px, 8vw, 108px);
+  z-index: 3;
+  transition: opacity 0.5s ease;
+}
+
+.deal__deck.is-done {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.deal__deck-card {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-card);
+  background: linear-gradient(145deg, #1c0505 0%, #0f0f0f 100%);
+  border: 1px solid rgba(204,0,0,0.25);
+  transform:
+    translateY(calc(var(--i) * -2px))
+    rotate(calc((var(--i) - 2) * 1.2deg));
+}
+
+/* ── Four piles ── */
 .deal__pile {
   position: absolute;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
-  cursor: pointer;
-  will-change: transform, opacity;
+  gap: 1rem;
+  z-index: 4;
+  cursor: default;
+  transition: filter 0.3s ease;
 }
 
-.deal__pile--top    { top: 5%;    left: 50%; transform: translateX(-50%); }
-.deal__pile--right  { top: 50%;   right: 3%; transform: translateY(-50%); }
-.deal__pile--bottom { bottom: 5%; left: 50%; transform: translateX(-50%); }
-.deal__pile--left   { top: 50%;   left: 3%;  transform: translateY(-50%); }
+.deal__pile.is-active  { cursor: pointer; }
 
-.deal__pile.is-locked { cursor: default; }
+.deal__pile--top    { top: 10vh;    left: 50%;  transform: translateX(-50%); }
+.deal__pile--right  { top: 50%;     right: 7vw; transform: translateY(-50%); }
+.deal__pile--bottom { bottom: 18vh; left: 50%;  transform: translateX(-50%); }
+.deal__pile--left   { top: 50%;     left: 7vw;  transform: translateY(-50%); }
 
-/* ── Card Stack ── */
+/* ── Card stack ── */
 .deal__cards {
   position: relative;
-  width: clamp(56px, 8vw, 76px);
-  height: clamp(80px, 11.5vw, 108px);
-  transition: transform 0.3s var(--ease-out);
+  width: clamp(52px, 5.5vw, 74px);
+  height: clamp(76px, 8vw, 108px);
+  transition: transform 0.35s var(--ease-out);
 }
 
 .deal__pile.is-hovered .deal__cards {
-  transform: translateY(-6px);
+  transform: translateY(-10px);
 }
 
 .deal__card {
   position: absolute;
   inset: 0;
   border-radius: var(--radius-card);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  transition: transform 0.3s var(--ease-out);
-}
-
-/* stacked back cards — slight offset per card */
-.deal__card--back {
-  background: linear-gradient(145deg, #1c1c1c 0%, #0f0f0f 100%);
+  background: linear-gradient(145deg, #1c0505 0%, #0d0d0d 100%);
+  border: 1px solid rgba(204,0,0,0.2);
   transform:
-    translateY(calc(var(--idx) * -2.5px))
-    rotate(calc((var(--idx) - 1.5) * 1.5deg));
+    translateY(calc(var(--c) * -2px))
+    rotate(calc((var(--c) - 2) * 1deg));
+  transition: transform 0.35s var(--ease-out), box-shadow 0.35s ease;
 }
 
-/* top face card */
+/* Back card pattern */
+.deal__card::before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border-radius: 8px;
+  border: 1px solid rgba(204,0,0,0.12);
+  background:
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 6px,
+      rgba(204,0,0,0.04) 6px,
+      rgba(204,0,0,0.04) 7px
+    );
+}
+
+/* Top (face) card */
 .deal__card--top {
-  background: linear-gradient(145deg, #1a1a1a 0%, #111 100%);
+  background: linear-gradient(145deg, #1a0303 0%, #111 100%);
+  border-color: rgba(204,0,0,0.45);
   display: flex;
   align-items: center;
   justify-content: center;
-  transform: translateY(-8px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
-  transition: transform 0.3s var(--ease-out), box-shadow 0.3s ease;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.6);
+  transform: translateY(-6px);
 }
 
 .deal__pile.is-hovered .deal__card--top {
-  transform: translateY(-22px);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8);
+  transform: translateY(-24px);
+  box-shadow: 0 18px 40px rgba(0,0,0,0.8), 0 0 20px rgba(204,0,0,0.15);
 }
 
 .deal__suit {
-  font-size: clamp(1.6rem, 3vw, 2.4rem);
+  font-size: clamp(1.4rem, 2.4vw, 2rem);
   line-height: 1;
   color: var(--color-white);
   user-select: none;
 }
-
-.deal__suit.is-red {
-  color: var(--color-red);
-}
+.deal__suit.is-red { color: var(--color-red); }
 
 /* ── Slogan ── */
 .deal__slogan {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   font-family: var(--font-body);
   font-style: italic;
-  font-size: clamp(0.6rem, 0.9vw, 0.78rem);
-  color: rgba(255, 255, 255, 0.0);
+  font-size: clamp(0.6rem, 0.85vw, 0.78rem);
+  line-height: 1.5;
   text-align: center;
   letter-spacing: 0.04em;
-  max-width: 120px;
-  line-height: 1.4;
-  transition: color 0.3s ease, transform 0.3s ease;
-  transform: translateY(4px);
+  color: rgba(255,255,255,0);
+  transition: color 0.3s ease, transform 0.3s var(--ease-out);
+  transform: translateY(6px);
   pointer-events: none;
 }
 
 .deal__pile.is-hovered .deal__slogan {
-  color: rgba(255, 255, 255, 0.75);
+  color: rgba(255,255,255,0.65);
   transform: translateY(0);
 }
 
-/* right / left pile — slogan beside the stack */
+/* right / left — horizontal layout */
 .deal__pile--right,
 .deal__pile--left {
   flex-direction: row;
-  gap: 0.6rem;
+  align-items: center;
+  gap: 0.8rem;
 }
-
 .deal__pile--right .deal__slogan,
-.deal__pile--left  .deal__slogan {
-  max-width: 90px;
+.deal__pile--left  .deal__slogan { text-align: left; }
+
+/* ── Mafia copy — bottom left ── */
+.deal__copy {
+  position: absolute;
+  bottom: 6vh;
+  left: 4vw;
+  z-index: 10;
+  opacity: 0;
 }
 
-/* ── "PICK ONE" heading ── */
-.deal__pick-text {
+.deal__copy-tag {
   font-family: var(--font-heading);
-  font-size: clamp(2.4rem, 6vw, 5rem);
-  letter-spacing: 0.18em;
-  color: var(--color-white);
+  font-size: clamp(0.65rem, 0.9vw, 0.8rem);
+  letter-spacing: 0.35em;
+  color: var(--color-red);
+  margin-bottom: 0.5rem;
+}
+
+.deal__copy-sub {
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: clamp(0.85rem, 1.1vw, 1rem);
+  color: rgba(255,255,255,0.4);
+  letter-spacing: 0.04em;
+  max-width: 280px;
+  line-height: 1.6;
+}
+
+/* ── PICK ONE — bottom right ── */
+.deal__pick-wrap {
+  position: absolute;
+  bottom: 4vh;
+  right: 5vw;
+  z-index: 10;
+  text-align: right;
   opacity: 0;
+}
+
+.deal__pick {
+  font-family: var(--font-heading);
+  font-size: clamp(4rem, 9vw, 8rem);
+  line-height: 0.9;
+  color: var(--color-white);
+  letter-spacing: 0.04em;
+}
+
+.deal__pick em {
+  font-style: normal;
+  color: var(--color-red);
+  display: block;
 }

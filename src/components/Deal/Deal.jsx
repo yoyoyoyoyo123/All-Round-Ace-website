@@ -1,103 +1,192 @@
-import { useRef, useEffect, useState } from 'react'
+import { useRef, useEffect, useState, useCallback } from 'react'
 import { gsap } from 'gsap'
 import { ScrollToPlugin } from 'gsap/ScrollToPlugin'
+import logo from '../../assets/logo.png'
 import './Deal.css'
 
 gsap.registerPlugin(ScrollToPlugin)
 
+// 4 piles: position on table, suit, slogan, rotation to bring to bottom
 const PILES = [
-  { id: 'spades',   suit: '♠', position: 'top',    slogan: 'We Engineer the Impossible',   isRed: false },
-  { id: 'hearts',   suit: '♥', position: 'right',  slogan: 'We Feel What Others Code',      isRed: true  },
-  { id: 'diamonds', suit: '♦', position: 'bottom', slogan: 'We Create What Others Imagine', isRed: true  },
-  { id: 'clubs',    suit: '♣', position: 'left',   slogan: 'We Play a Different Game',      isRed: false },
+  { id: 'top',    suit: '♠', label: 'SPADES',   slogan: 'We Engineer\nthe Impossible',   isRed: false, toBottom:  180 },
+  { id: 'right',  suit: '♥', label: 'HEARTS',   slogan: 'We Feel What\nOthers Code',      isRed: true,  toBottom:  -90 },
+  { id: 'bottom', suit: '♦', label: 'DIAMONDS', slogan: 'We Create What\nOthers Imagine', isRed: true,  toBottom:    0 },
+  { id: 'left',   suit: '♣', label: 'CLUBS',    slogan: 'We Play a\nDifferent Game',      isRed: false, toBottom:   90 },
 ]
 
+const CARDS_PER_PILE = 5
+// Deal order: round-robin [0,1,2,3, 0,1,2,3, ...]
+const DEAL_ORDER = Array.from({ length: CARDS_PER_PILE * PILES.length }, (_, i) => i % PILES.length)
+
 export default function Deal() {
-  const tableRef    = useRef(null)
-  const pickTextRef = useRef(null)
-  const pileRefs    = useRef([])
+  const sectionRef   = useRef(null)
+  const tableRef     = useRef(null)   // the rotating container
+  const deckRef      = useRef(null)   // source deck
+  const [deckDone, setDeckDone] = useState(false)
+  const flyCardRef   = useRef(null)   // single flying card element
+  const pileRefs     = useRef([])     // 4 pile wrappers
+  const cardRefs     = useRef([])     // 20 individual cards [pileIdx][cardIdx]
+  const copyRef      = useRef(null)
+  const pickRef      = useRef(null)
+
+  const [phase,   setPhase]   = useState('idle')  // idle | dealing | ready | selected
   const [hovered, setHovered] = useState(null)
-  const [picked,  setPicked]  = useState(false)
 
-  useEffect(() => {
-    const piles = pileRefs.current.filter(Boolean)
+  // --- Dealing animation ---
+  const runDeal = useCallback(() => {
+    setPhase('dealing')
 
-    gsap.set(tableRef.current, { scale: 0.6, opacity: 0 })
-    gsap.set(piles, { scale: 0, opacity: 0 })
-    gsap.set(pickTextRef.current, { opacity: 0, y: 16 })
+    const deckEl   = deckRef.current
+    const sectionEl = sectionRef.current
+    if (!deckEl || !sectionEl) return
 
-    const tl = gsap.timeline({ delay: 0.2 })
+    const deckRect    = deckEl.getBoundingClientRect()
+    const sectionRect = sectionEl.getBoundingClientRect()
 
-    tl.to(tableRef.current, { scale: 1, opacity: 1, duration: 0.9, ease: 'power3.out' })
-      .to(piles, { scale: 1, opacity: 1, duration: 0.55, ease: 'back.out(1.6)', stagger: 0.13 }, '-=0.4')
-      .to(pickTextRef.current, { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out' }, '-=0.15')
+    // Track how many cards each pile has received
+    const pileCount = [0, 0, 0, 0]
 
-    return () => tl.kill()
-  }, [])
-
-  const handlePick = (index) => {
-    if (picked) return
-    setPicked(true)
-    setHovered(null)
-
-    const piles = pileRefs.current.filter(Boolean)
-
-    piles.forEach((pile, i) => {
-      if (i !== index) {
-        gsap.to(pile, { opacity: 0, scale: 0.75, y: 20, duration: 0.35, ease: 'power2.in' })
-      }
+    const tl = gsap.timeline({
+      onComplete: () => {
+        setPhase('ready')
+        setDeckDone(true)
+        gsap.to([copyRef.current, pickRef.current], {
+          opacity: 1, y: 0, duration: 0.7, stagger: 0.18, ease: 'power2.out',
+        })
+      },
     })
 
-    gsap.to(pickTextRef.current, { opacity: 0, duration: 0.25 })
-    gsap.to(tableRef.current, { opacity: 0, scale: 0.92, duration: 0.5, delay: 0.35, ease: 'power2.in' })
+    // Fade table in
+    tl.to(tableRef.current, { opacity: 1, scale: 1, duration: 0.6, ease: 'power2.out' })
 
-    gsap.to(piles[index], {
-      y: '38vh',
-      scale: 1.25,
-      duration: 0.7,
+    DEAL_ORDER.forEach((pileIdx, dealIdx) => {
+      const cardSlot = pileCount[pileIdx]
+      pileCount[pileIdx]++
+      const cardEl = cardRefs.current[pileIdx]?.[cardSlot]
+      if (!cardEl) return
+
+      const cardRect    = cardEl.getBoundingClientRect()
+      const fromX = deckRect.left + deckRect.width  / 2 - (cardRect.left + cardRect.width  / 2)
+      const fromY = deckRect.top  + deckRect.height / 2 - (cardRect.top  + cardRect.height / 2)
+
+      tl.fromTo(
+        cardEl,
+        { x: fromX, y: fromY, opacity: 1, rotation: gsap.utils.random(-8, 8) },
+        { x: 0, y: 0, rotation: 0, duration: 0.38, ease: 'power3.out' },
+        dealIdx * 0.1,
+      )
+    })
+  }, [])
+
+  // Initial setup + trigger deal after table fades in
+  useEffect(() => {
+    gsap.set(tableRef.current, { opacity: 0, scale: 0.94 })
+    gsap.set(copyRef.current,  { opacity: 0, y: 24 })
+    gsap.set(pickRef.current,  { opacity: 0, y: 20 })
+
+    // Hide all cards initially
+    const allCards = cardRefs.current.flat().filter(Boolean)
+    gsap.set(allCards, { opacity: 0 })
+
+    // Reveal cards before deal starts (at deck position)
+    const timer = setTimeout(runDeal, 400)
+    return () => clearTimeout(timer)
+  }, [runDeal])
+
+  // --- Selection + table rotation ---
+  const handlePick = (pileIdx) => {
+    if (phase !== 'ready') return
+    setPhase('selected')
+    setHovered(null)
+
+    const pile  = PILES[pileIdx]
+    const angle = pile.toBottom
+
+    gsap.to([copyRef.current, pickRef.current], { opacity: 0, duration: 0.3 })
+
+    gsap.to(tableRef.current, {
+      rotation: angle,
+      duration: 1.1,
       ease: 'power3.inOut',
-      delay: 0.1,
       onComplete: () => {
-        gsap.to(window, {
-          scrollTo: { y: '#suits', offsetY: 0 },
-          duration: 1.1,
-          ease: 'power3.inOut',
+        gsap.to(sectionRef.current, {
+          opacity: 0,
+          duration: 0.5,
+          ease: 'power2.inOut',
+          onComplete: () => {
+            gsap.to(window, { scrollTo: { y: '#suits' }, duration: 0.01 })
+            gsap.to(sectionRef.current, { opacity: 1, duration: 0 })
+          },
         })
       },
     })
   }
 
   return (
-    <section id="deal" className="section deal">
+    <section ref={sectionRef} id="deal" className="deal">
+
+      {/* Full-screen rotating table */}
       <div ref={tableRef} className="deal__table">
-        <div className="deal__felt">
-          <div className="deal__felt-ring" />
-          <span className="deal__felt-label">THE WINNING HAND</span>
+
+        {/* Felt surface */}
+        <div className="deal__felt" />
+
+        {/* Center logo */}
+        <div className="deal__center">
+          <img src={logo} alt="ARA Studio" className="deal__logo" />
         </div>
 
-        {PILES.map((pile, i) => (
+        {/* Source deck */}
+        <div ref={deckRef} className={`deal__deck${deckDone ? ' is-done' : ''}`}>
+          {[0,1,2,3,4].map(i => (
+            <div key={i} className="deal__deck-card" style={{ '--i': i }} />
+          ))}
+        </div>
+
+        {/* Four piles */}
+        {PILES.map((pile, pIdx) => (
           <div
             key={pile.id}
-            ref={el => (pileRefs.current[i] = el)}
-            className={`deal__pile deal__pile--${pile.position}${hovered === i ? ' is-hovered' : ''}${picked ? ' is-locked' : ''}`}
-            onMouseEnter={() => !picked && setHovered(i)}
+            ref={el => (pileRefs.current[pIdx] = el)}
+            className={`deal__pile deal__pile--${pile.id}${hovered === pIdx ? ' is-hovered' : ''}${phase === 'ready' || phase === 'selected' ? ' is-active' : ''}`}
+            onMouseEnter={() => phase === 'ready' && setHovered(pIdx)}
             onMouseLeave={() => setHovered(null)}
-            onClick={() => handlePick(i)}
+            onClick={() => handlePick(pIdx)}
           >
             <div className="deal__cards">
-              {[0, 1, 2, 3].map(j => (
-                <div key={j} className="deal__card deal__card--back" style={{ '--idx': j }} />
+              {Array.from({ length: CARDS_PER_PILE }, (_, cIdx) => (
+                <div
+                  key={cIdx}
+                  ref={el => {
+                    if (!cardRefs.current[pIdx]) cardRefs.current[pIdx] = []
+                    cardRefs.current[pIdx][cIdx] = el
+                  }}
+                  className={`deal__card${cIdx === CARDS_PER_PILE - 1 ? ' deal__card--top' : ''}`}
+                  style={{ '--c': cIdx }}
+                >
+                  {cIdx === CARDS_PER_PILE - 1 && (
+                    <span className={`deal__suit${pile.isRed ? ' is-red' : ''}`}>{pile.suit}</span>
+                  )}
+                </div>
               ))}
-              <div className="deal__card deal__card--top">
-                <span className={`deal__suit${pile.isRed ? ' is-red' : ''}`}>{pile.suit}</span>
-              </div>
             </div>
-            <p className="deal__slogan">{pile.slogan}</p>
+            <p className="deal__slogan">
+              {pile.slogan.split('\n').map((line, i) => <span key={i}>{line}</span>)}
+            </p>
           </div>
         ))}
       </div>
 
-      <h2 ref={pickTextRef} className="deal__pick-text">PICK ONE</h2>
+      {/* Mafia copy — bottom overlay */}
+      <div className="deal__copy" ref={copyRef}>
+        <p className="deal__copy-tag">ALL ROUND ACE STUDIO</p>
+        <p className="deal__copy-sub">Every project is a game. We don't play safe.</p>
+      </div>
+
+      <div className="deal__pick-wrap" ref={pickRef}>
+        <h1 className="deal__pick">PICK<br /><em>ONE</em></h1>
+      </div>
+
     </section>
   )
 }

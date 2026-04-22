@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import Loader     from './components/Loader/Loader'
+import Header     from './components/Header/Header'
 import Deal       from './components/Deal/Deal'
 import Suits      from './components/Suits/Suits'
 import Spread     from './components/Spread/Spread'
@@ -12,6 +13,7 @@ export default function App() {
   return (
     <>
       <Loader onComplete={() => setLoaded(true)} />
+      {loaded && <Header />}
       <main style={{ opacity: loaded ? 1 : 0, transition: 'opacity 0.6s ease' }}>
         <Deal />
         <Suits />
