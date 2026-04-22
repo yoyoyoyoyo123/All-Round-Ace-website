@@ -1,0 +1,77 @@
+/* =============================================
+   ARA Studio — Global Design System
+   The Winning Hand
+   ============================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap');
+
+:root {
+  /* Colors */
+  --color-black:  #0A0A0A;
+  --color-red:    #CC0000;
+  --color-white:  #FFFFFF;
+  --color-gold:   #C9A84C;
+  --color-dark:   #111111;
+  --color-gray:   #2A2A2A;
+
+  /* Typography */
+  --font-heading: 'Bebas Neue', sans-serif;
+  --font-body:    'Cormorant Garamond', serif;
+
+  /* Easing — power3.inOut equivalent */
+  --ease-main:    cubic-bezier(0.76, 0, 0.24, 1);
+  --ease-out:     cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Card */
+  --radius-card:  12px;
+  --card-width:   200px;
+  --card-height:  300px;
+
+  /* Spacing */
+  --section-padding: 10vh 5vw;
+}
+
+/* Reset */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: auto; /* GSAP controls scroll */
+  font-size: 16px;
+}
+
+body {
+  background: var(--color-black);
+  color: var(--color-white);
+  font-family: var(--font-body);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Utility */
+.section {
+  min-height: 100vh;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-heading);
+  letter-spacing: 0.05em;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-family: inherit;
+}
