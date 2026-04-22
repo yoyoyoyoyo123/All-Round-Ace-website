@@ -1,24 +1,20 @@
 /* =============================================
-   Scene 1: The DEAL — 發牌（完整版）
+   Scene 1: The DEAL
    ============================================= */
 
-/* ── Section ── */
 .deal {
   position: relative;
   width: 100vw;
   height: 100vh;
   overflow: hidden;
   background: var(--color-black);
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
 }
 
-/* ── Full-screen table circle ── */
+/* ── Full-screen table ── */
 .deal__table {
   position: absolute;
   inset: 0;
-  will-change: transform, opacity;
+  will-change: opacity;
 }
 
 .deal__felt {
@@ -30,16 +26,16 @@
   height: 110vw;
   border-radius: 50%;
   background: radial-gradient(
-    ellipse 70% 60% at 50% 48%,
-    #1a0303 0%,
-    #120202 40%,
-    #0a0a0a 75%,
-    #050505 100%
+    ellipse 65% 55% at 50% 48%,
+    #200505 0%,
+    #150202 35%,
+    #0c0c0c 65%,
+    #060606 100%
   );
-  border: 2px solid rgba(204, 0, 0, 0.18);
+  border: 2px solid rgba(204, 0, 0, 0.2);
   box-shadow:
-    inset 0 0 120px rgba(0,0,0,0.7),
-    0 0 0 1px rgba(255,255,255,0.03);
+    inset 0 0 140px rgba(0,0,0,0.75),
+    0 0 0 1px rgba(255,255,255,0.025);
 }
 
 /* ── Center logo ── */
@@ -53,36 +49,32 @@
 }
 
 .deal__logo {
-  width: clamp(180px, 22vw, 320px);
+  width: clamp(200px, 24vw, 360px);
   filter: brightness(0) invert(1);
-  opacity: 0.12;
+  opacity: 0.1;
 }
 
-/* ── Source deck (dealer position — bottom-right corner) ── */
+/* ── Source deck ── */
 .deal__deck {
   position: absolute;
-  bottom: 5vh;
-  right: 20vw;
-  width: clamp(52px, 5.5vw, 74px);
-  height: clamp(76px, 8vw, 108px);
+  bottom: 6vh;
+  right: 18vw;
+  width: clamp(68px, 7vw, 95px);
+  height: clamp(98px, 10.5vw, 138px);
   z-index: 3;
-  transition: opacity 0.5s ease;
+  transition: opacity 0.6s ease;
 }
-
-.deal__deck.is-done {
-  opacity: 0;
-  pointer-events: none;
-}
+.deal__deck.is-done { opacity: 0; pointer-events: none; }
 
 .deal__deck-card {
   position: absolute;
   inset: 0;
   border-radius: var(--radius-card);
-  background: linear-gradient(145deg, #1c0505 0%, #0f0f0f 100%);
-  border: 1px solid rgba(204,0,0,0.25);
+  background: linear-gradient(145deg, #200505 0%, #0f0f0f 100%);
+  border: 1px solid rgba(204,0,0,0.3);
   transform:
-    translateY(calc(var(--i) * -2px))
-    rotate(calc((var(--i) - 2) * 1.2deg));
+    translateY(calc(var(--i) * -2.5px))
+    rotate(calc((var(--i) - 2) * 1.5deg));
 }
 
 /* ── Four piles ── */
@@ -91,78 +83,93 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1rem;
+  gap: 1.2rem;
   z-index: 4;
   cursor: default;
-  transition: filter 0.3s ease;
 }
 
-.deal__pile.is-active  { cursor: pointer; }
+.deal__pile.is-active { cursor: pointer; }
 
-.deal__pile--top    { top: 10vh;    left: 50%;  transform: translateX(-50%); }
-.deal__pile--right  { top: 50%;     right: 7vw; transform: translateY(-50%); }
-.deal__pile--bottom { bottom: 18vh; left: 50%;  transform: translateX(-50%); }
-.deal__pile--left   { top: 50%;     left: 7vw;  transform: translateY(-50%); }
+.deal__pile--top    { top: 8vh;    left: 50%;  transform: translateX(-50%); }
+.deal__pile--right  { top: 50%;    right: 6vw; transform: translateY(-50%); }
+.deal__pile--bottom { bottom: 14vh;left: 50%;  transform: translateX(-50%); }
+.deal__pile--left   { top: 50%;    left: 6vw;  transform: translateY(-50%); }
 
 /* ── Card stack ── */
 .deal__cards {
   position: relative;
-  width: clamp(52px, 5.5vw, 74px);
-  height: clamp(76px, 8vw, 108px);
-  transition: transform 0.35s var(--ease-out);
+  width: clamp(72px, 8vw, 106px);
+  height: clamp(104px, 11.5vw, 152px);
 }
 
-.deal__pile.is-hovered .deal__cards {
-  transform: translateY(-10px);
-}
-
+/* ── Individual cards ── */
 .deal__card {
   position: absolute;
   inset: 0;
   border-radius: var(--radius-card);
-  background: linear-gradient(145deg, #1c0505 0%, #0d0d0d 100%);
-  border: 1px solid rgba(204,0,0,0.2);
+  background: linear-gradient(150deg, #1e0404 0%, #0e0e0e 100%);
+  border: 1px solid rgba(204,0,0,0.22);
+  /* default stacked position */
   transform:
-    translateY(calc(var(--c) * -2px))
-    rotate(calc((var(--c) - 2) * 1deg));
-  transition: transform 0.35s var(--ease-out), box-shadow 0.35s ease;
+    translateY(calc(var(--c) * -2.5px))
+    rotate(calc((var(--c) - 2) * 0.8deg));
+  transition: transform 0.4s var(--ease-out), box-shadow 0.4s ease;
 }
 
-/* Back card pattern */
 .deal__card::before {
   content: '';
   position: absolute;
-  inset: 5px;
+  inset: 6px;
   border-radius: 8px;
-  border: 1px solid rgba(204,0,0,0.12);
-  background:
-    repeating-linear-gradient(
-      45deg,
-      transparent,
-      transparent 6px,
-      rgba(204,0,0,0.04) 6px,
-      rgba(204,0,0,0.04) 7px
-    );
+  border: 1px solid rgba(204,0,0,0.1);
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 7px,
+    rgba(204,0,0,0.035) 7px,
+    rgba(204,0,0,0.035) 8px
+  );
 }
 
-/* Top (face) card */
+/* top face card */
 .deal__card--top {
-  background: linear-gradient(145deg, #1a0303 0%, #111 100%);
-  border-color: rgba(204,0,0,0.45);
+  background: linear-gradient(150deg, #1e0404 0%, #111 100%);
+  border-color: rgba(204,0,0,0.5);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.6);
-  transform: translateY(-6px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+  transform: translateY(-8px);
 }
 
+/* ── Hover: fan spread (5 cards visible) ── */
+.deal__pile.is-hovered .deal__cards {
+  /* extra height to accommodate upward fan */
+}
+
+.deal__pile.is-hovered .deal__card:nth-child(1) {
+  transform: translateX(-38px) translateY(6px) rotate(-18deg);
+  box-shadow: -4px 8px 20px rgba(0,0,0,0.5);
+}
+.deal__pile.is-hovered .deal__card:nth-child(2) {
+  transform: translateX(-19px) translateY(-8px) rotate(-9deg);
+  box-shadow: -2px 8px 20px rgba(0,0,0,0.5);
+}
+.deal__pile.is-hovered .deal__card:nth-child(3) {
+  transform: translateX(0) translateY(-18px) rotate(0deg);
+  box-shadow: 0 10px 28px rgba(0,0,0,0.6);
+}
+.deal__pile.is-hovered .deal__card:nth-child(4) {
+  transform: translateX(19px) translateY(-8px) rotate(9deg);
+  box-shadow: 2px 8px 20px rgba(0,0,0,0.5);
+}
 .deal__pile.is-hovered .deal__card--top {
-  transform: translateY(-24px);
-  box-shadow: 0 18px 40px rgba(0,0,0,0.8), 0 0 20px rgba(204,0,0,0.15);
+  transform: translateX(38px) translateY(6px) rotate(18deg);
+  box-shadow: 4px 8px 28px rgba(0,0,0,0.6), 0 0 16px rgba(204,0,0,0.2);
 }
 
 .deal__suit {
-  font-size: clamp(1.4rem, 2.4vw, 2rem);
+  font-size: clamp(1.8rem, 2.8vw, 2.6rem);
   line-height: 1;
   color: var(--color-white);
   user-select: none;
@@ -176,35 +183,25 @@
   align-items: center;
   font-family: var(--font-body);
   font-style: italic;
-  font-size: clamp(0.6rem, 0.85vw, 0.78rem);
-  line-height: 1.5;
+  font-size: clamp(0.7rem, 1vw, 0.9rem);
+  line-height: 1.55;
   text-align: center;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
   color: rgba(255,255,255,0);
-  transition: color 0.3s ease, transform 0.3s var(--ease-out);
-  transform: translateY(6px);
+  transition: color 0.3s ease, transform 0.35s var(--ease-out);
+  transform: translateY(8px);
   pointer-events: none;
+  white-space: nowrap;
 }
-
 .deal__pile.is-hovered .deal__slogan {
-  color: rgba(255,255,255,0.65);
+  color: rgba(255,255,255,0.6);
   transform: translateY(0);
 }
-
-/* right / left — horizontal layout */
-.deal__pile--right,
-.deal__pile--left {
-  flex-direction: row;
-  align-items: center;
-  gap: 0.8rem;
-}
-.deal__pile--right .deal__slogan,
-.deal__pile--left  .deal__slogan { text-align: left; }
 
 /* ── Mafia copy — bottom left ── */
 .deal__copy {
   position: absolute;
-  bottom: 6vh;
+  bottom: 5vh;
   left: 4vw;
   z-index: 10;
   opacity: 0;
@@ -212,26 +209,25 @@
 
 .deal__copy-tag {
   font-family: var(--font-heading);
-  font-size: clamp(0.65rem, 0.9vw, 0.8rem);
-  letter-spacing: 0.35em;
+  font-size: clamp(0.8rem, 1.1vw, 1rem);
+  letter-spacing: 0.32em;
   color: var(--color-red);
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.6rem;
 }
 
 .deal__copy-sub {
   font-family: var(--font-body);
   font-style: italic;
-  font-size: clamp(0.85rem, 1.1vw, 1rem);
+  font-size: clamp(1rem, 1.4vw, 1.25rem);
   color: rgba(255,255,255,0.4);
-  letter-spacing: 0.04em;
-  max-width: 280px;
-  line-height: 1.6;
+  letter-spacing: 0.03em;
+  line-height: 1.65;
 }
 
 /* ── PICK ONE — bottom right ── */
 .deal__pick-wrap {
   position: absolute;
-  bottom: 4vh;
+  bottom: 3.5vh;
   right: 5vw;
   z-index: 10;
   text-align: right;
@@ -240,10 +236,10 @@
 
 .deal__pick {
   font-family: var(--font-heading);
-  font-size: clamp(4rem, 9vw, 8rem);
-  line-height: 0.9;
+  font-size: clamp(5rem, 10vw, 10rem);
+  line-height: 0.88;
   color: var(--color-white);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
 }
 
 .deal__pick em {

@@ -14,23 +14,23 @@
 
 .site-header__studio {
   font-family: var(--font-heading);
-  font-size: 0.85rem;
-  letter-spacing: 0.35em;
-  color: rgba(255,255,255,0.45);
+  font-size: clamp(0.9rem, 1.1vw, 1.1rem);
+  letter-spacing: 0.32em;
+  color: rgba(255,255,255,0.5);
   pointer-events: auto;
 }
 
 .site-header__nav {
   display: flex;
-  gap: 2.5rem;
+  gap: 2.8rem;
   pointer-events: auto;
 }
 
 .site-header__link {
   font-family: var(--font-heading);
-  font-size: 0.72rem;
-  letter-spacing: 0.22em;
-  color: rgba(255,255,255,0.4);
+  font-size: clamp(0.82rem, 1vw, 1rem);
+  letter-spacing: 0.2em;
+  color: rgba(255,255,255,0.45);
   text-decoration: none;
   transition: color 0.25s ease;
 }
