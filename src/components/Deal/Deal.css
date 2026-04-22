@@ -1,0 +1,168 @@
+/* =============================================
+   Scene 1: The DEAL — 發牌
+   ============================================= */
+
+.deal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3rem;
+  background: var(--color-black);
+}
+
+/* ── Table ── */
+.deal__table {
+  position: relative;
+  width: min(72vw, 72vh);
+  height: min(72vw, 72vh);
+  will-change: transform, opacity;
+}
+
+.deal__felt {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 40% 35%, #1a2e1a 0%, #0c1c0c 55%, #060e06 100%);
+  border: 3px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 0 0 8px rgba(0, 0, 0, 0.6),
+    0 0 0 10px rgba(255, 255, 255, 0.04),
+    0 30px 80px rgba(0, 0, 0, 0.8),
+    inset 0 0 60px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+}
+
+.deal__felt-ring {
+  position: absolute;
+  inset: 6%;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  pointer-events: none;
+}
+
+.deal__felt-label {
+  font-family: var(--font-heading);
+  font-size: clamp(0.65rem, 1.2vw, 0.9rem);
+  letter-spacing: 0.35em;
+  color: rgba(201, 168, 76, 0.35);
+  user-select: none;
+}
+
+/* ── Card Piles ── */
+.deal__pile {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  will-change: transform, opacity;
+}
+
+.deal__pile--top    { top: 5%;    left: 50%; transform: translateX(-50%); }
+.deal__pile--right  { top: 50%;   right: 3%; transform: translateY(-50%); }
+.deal__pile--bottom { bottom: 5%; left: 50%; transform: translateX(-50%); }
+.deal__pile--left   { top: 50%;   left: 3%;  transform: translateY(-50%); }
+
+.deal__pile.is-locked { cursor: default; }
+
+/* ── Card Stack ── */
+.deal__cards {
+  position: relative;
+  width: clamp(56px, 8vw, 76px);
+  height: clamp(80px, 11.5vw, 108px);
+  transition: transform 0.3s var(--ease-out);
+}
+
+.deal__pile.is-hovered .deal__cards {
+  transform: translateY(-6px);
+}
+
+.deal__card {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-card);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  transition: transform 0.3s var(--ease-out);
+}
+
+/* stacked back cards — slight offset per card */
+.deal__card--back {
+  background: linear-gradient(145deg, #1c1c1c 0%, #0f0f0f 100%);
+  transform:
+    translateY(calc(var(--idx) * -2.5px))
+    rotate(calc((var(--idx) - 1.5) * 1.5deg));
+}
+
+/* top face card */
+.deal__card--top {
+  background: linear-gradient(145deg, #1a1a1a 0%, #111 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateY(-8px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  transition: transform 0.3s var(--ease-out), box-shadow 0.3s ease;
+}
+
+.deal__pile.is-hovered .deal__card--top {
+  transform: translateY(-22px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8);
+}
+
+.deal__suit {
+  font-size: clamp(1.6rem, 3vw, 2.4rem);
+  line-height: 1;
+  color: var(--color-white);
+  user-select: none;
+}
+
+.deal__suit.is-red {
+  color: var(--color-red);
+}
+
+/* ── Slogan ── */
+.deal__slogan {
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: clamp(0.6rem, 0.9vw, 0.78rem);
+  color: rgba(255, 255, 255, 0.0);
+  text-align: center;
+  letter-spacing: 0.04em;
+  max-width: 120px;
+  line-height: 1.4;
+  transition: color 0.3s ease, transform 0.3s ease;
+  transform: translateY(4px);
+  pointer-events: none;
+}
+
+.deal__pile.is-hovered .deal__slogan {
+  color: rgba(255, 255, 255, 0.75);
+  transform: translateY(0);
+}
+
+/* right / left pile — slogan beside the stack */
+.deal__pile--right,
+.deal__pile--left {
+  flex-direction: row;
+  gap: 0.6rem;
+}
+
+.deal__pile--right .deal__slogan,
+.deal__pile--left  .deal__slogan {
+  max-width: 90px;
+}
+
+/* ── "PICK ONE" heading ── */
+.deal__pick-text {
+  font-family: var(--font-heading);
+  font-size: clamp(2.4rem, 6vw, 5rem);
+  letter-spacing: 0.18em;
+  color: var(--color-white);
+  opacity: 0;
+}
