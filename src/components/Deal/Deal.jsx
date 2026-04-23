@@ -1,10 +1,10 @@
 import { useRef, useEffect, useState, useCallback } from 'react'
 import { gsap } from 'gsap'
-import { ScrollToPlugin } from 'gsap/ScrollToPlugin'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import logo from '../../assets/logo.png'
 import './Deal.css'
 
-gsap.registerPlugin(ScrollToPlugin)
+gsap.registerPlugin(ScrollTrigger)
 
 const PILES = [
   { id: 'top',    suit: '♠', slogan: 'We Engineer\nthe Impossible',   isRed: false },
@@ -14,35 +14,32 @@ const PILES = [
 ]
 
 const CARDS_PER_PILE = 5
-// Round-robin deal order: 0,1,2,3, 0,1,2,3, ...
 const DEAL_ORDER = Array.from({ length: CARDS_PER_PILE * PILES.length }, (_, i) => i % PILES.length)
 
 export default function Deal({ shouldDeal }) {
-  const sectionRef  = useRef(null)
-  const tableRef    = useRef(null)
-  const deckRef     = useRef(null)
-  const pileRefs    = useRef([])
-  const cardRefs    = useRef([])   // cardRefs[pileIdx][cardIdx]
-  const copyRef     = useRef(null)
-  const pickRef     = useRef(null)
+  const sectionRef = useRef(null)
+  const tableRef   = useRef(null)
+  const deckRef    = useRef(null)
+  const pileRefs   = useRef([])
+  const cardRefs   = useRef([])
+  const copyRef    = useRef(null)
+  const pickRef    = useRef(null)
 
   const [phase,    setPhase]    = useState('idle')
   const [hovered,  setHovered]  = useState(null)
   const [deckDone, setDeckDone] = useState(false)
 
-  // --- Deal animation (triggered by parent after Loader + fade-in) ---
+  // ── Deal animation ──
   const runDeal = useCallback(() => {
     setPhase('dealing')
-
     const deckEl = deckRef.current
     if (!deckEl) return
 
-    const deckRect = deckEl.getBoundingClientRect()
+    const deckRect  = deckEl.getBoundingClientRect()
     const pileCount = [0, 0, 0, 0]
 
     const tl = gsap.timeline({
       onComplete: () => {
-        // Clear GSAP inline transforms so CSS hover fan can take over
         const allCards = cardRefs.current.flat().filter(Boolean)
         gsap.set(allCards, { clearProps: 'x,y,rotation,transform' })
         setPhase('ready')
@@ -58,15 +55,11 @@ export default function Deal({ shouldDeal }) {
     DEAL_ORDER.forEach((pileIdx, dealIdx) => {
       const cardSlot = pileCount[pileIdx]
       pileCount[pileIdx]++
-
       const cardEl = cardRefs.current[pileIdx]?.[cardSlot]
       if (!cardEl) return
-
       const cardRect = cardEl.getBoundingClientRect()
       const fromX = deckRect.left + deckRect.width  / 2 - (cardRect.left + cardRect.width  / 2)
       const fromY = deckRect.top  + deckRect.height / 2 - (cardRect.top  + cardRect.height / 2)
-
-      // Snap card to opacity:1 at deck pos, then fly to pile
       tl.fromTo(
         cardEl,
         { x: fromX, y: fromY, opacity: 1, rotation: gsap.utils.random(-10, 10) },
@@ -76,70 +69,124 @@ export default function Deal({ shouldDeal }) {
     })
   }, [])
 
-  // Initial state — hide everything until deal starts
+  // ── Initial state + scroll-back restoration ──
   useEffect(() => {
     gsap.set(tableRef.current, { opacity: 0 })
     gsap.set(copyRef.current,  { opacity: 0, y: 24 })
     gsap.set(pickRef.current,  { opacity: 0, y: 20 })
     const allCards = cardRefs.current.flat().filter(Boolean)
     gsap.set(allCards, { opacity: 0 })
-  }, [])
 
-  // Trigger deal when parent signals ready
+    // When user scrolls back into Deal from Suits — restore full ready state
+    const restoreTrigger = ScrollTrigger.create({
+      trigger: sectionRef.current,
+      start: 'top bottom',
+      onEnterBack: () => {
+        if (phase === 'ready' || phase === 'selected') {
+          pileRefs.current.forEach(p => {
+            if (p) gsap.set(p, { clearProps: 'x,y,scale,opacity' })
+          })
+          // Restore copy + pick text (set explicitly — CSS defaults to opacity:0)
+          gsap.set([copyRef.current, pickRef.current], { opacity: 1, y: 0 })
+          setPhase('ready')
+          setHovered(null)
+        }
+      },
+    })
+
+    return () => {
+      restoreTrigger.kill()
+      ScrollTrigger.getAll().forEach(t => t.kill())
+    }
+  }, []) // eslint-disable-line
+
   useEffect(() => {
     if (shouldDeal && phase === 'idle') runDeal()
   }, [shouldDeal, phase, runDeal])
 
-  // --- Pile selection: move pile to bottom-center ---
+  // ── Pile selection: 5-card spread → Scene 2 ──
   const handlePick = (pileIdx) => {
     if (phase !== 'ready') return
     setPhase('selected')
     setHovered(null)
 
-    const pileEl    = pileRefs.current[pileIdx]
     const sectionEl = sectionRef.current
-    if (!pileEl || !sectionEl) return
+    if (!sectionEl) return
 
-    const pileRect    = pileEl.getBoundingClientRect()
-    const sectionRect = sectionEl.getBoundingClientRect()
+    const vw = window.innerWidth
+    const vh = window.innerHeight
 
-    // Fade others
+    // Lock scroll during transition
+    document.body.style.overflow = 'hidden'
+
+    // Fade non-selected piles & UI
     pileRefs.current.forEach((p, i) => {
-      if (i !== pileIdx) gsap.to(p, { opacity: 0, scale: 0.8, duration: 0.4, ease: 'power2.in' })
+      if (i !== pileIdx && p) gsap.to(p, { opacity: 0, scale: 0.85, duration: 0.35, ease: 'power2.in' })
     })
-    gsap.to([copyRef.current, pickRef.current], { opacity: 0, duration: 0.3 })
+    gsap.to([copyRef.current, pickRef.current], { opacity: 0, duration: 0.25 })
 
-    // Target: bottom-center of section
-    const targetCX = sectionRect.left + sectionRect.width  / 2
-    const targetCY = sectionRect.top  + sectionRect.height - pileRect.height / 2 - 60
+    // Create fixed overlay container
+    const overlayEl = document.createElement('div')
+    overlayEl.style.cssText = 'position:fixed;left:0;top:0;width:100%;height:100%;z-index:9998;pointer-events:none;overflow:hidden;'
+    document.body.appendChild(overlayEl)
 
-    // Current center
-    const currentCX = pileRect.left + pileRect.width  / 2
-    const currentCY = pileRect.top  + pileRect.height / 2
+    // Clone 5 cards as overlay divs, positioned exactly over each card
+    const pickedCards = (cardRefs.current[pileIdx] || []).filter(Boolean)
+    const panelW = vw / 5
 
-    gsap.to(pileEl, {
-      x: `+=${targetCX - currentCX}`,
-      y: `+=${targetCY - currentCY}`,
-      scale: 1.25,
-      duration: 0.85,
-      ease: 'power3.inOut',
+    const overlayDivs = pickedCards.map((card) => {
+      const rect = card.getBoundingClientRect()
+      const div = document.createElement('div')
+      div.style.cssText = `
+        position:absolute; left:0; top:0;
+        width:${rect.width}px; height:${rect.height}px;
+        background:linear-gradient(150deg,#200505 0%,#0e0e0e 100%);
+        border:1px solid rgba(204,0,0,0.3);
+        border-radius:12px;
+      `
+      overlayEl.appendChild(div)
+      // Position at card's current screen location
+      gsap.set(div, { x: rect.left, y: rect.top, transformOrigin: 'top left' })
+      return { div, rect }
+    })
+
+    const tl = gsap.timeline({
       onComplete: () => {
-        gsap.to(sectionEl, {
-          opacity: 0, duration: 0.5, ease: 'power2.inOut',
-          onComplete: () => {
-            gsap.to(window, { scrollTo: { y: '#suits' }, duration: 0.01 })
-            gsap.set(sectionEl, { opacity: 1 })
-            // Reset all piles so scrolling back up shows correct state
-            setTimeout(() => {
-              pileRefs.current.forEach(p => {
-                if (p) gsap.set(p, { clearProps: 'x,y,scale,opacity' })
-              })
-              gsap.set([copyRef.current, pickRef.current], { clearProps: 'opacity,y' })
-              setPhase('ready')
-            }, 80)
-          },
+        // Instant scroll to Suits
+        const suitsEl = document.getElementById('suits')
+        if (suitsEl) window.scrollTo({ top: suitsEl.offsetTop, behavior: 'instant' })
+
+        // Fade out overlays after flip starts (0.4s delay)
+        gsap.to(overlayEl, {
+          opacity: 0, duration: 0.7, delay: 0.4,
+          onComplete: () => { if (overlayEl.parentNode) overlayEl.remove() },
         })
+
+        // Restore Deal for scroll-back
+        gsap.set(sectionEl, { opacity: 1 })
+        pileRefs.current.forEach(p => { if (p) gsap.set(p, { clearProps: 'x,y,scale,opacity' }) })
+        gsap.set([copyRef.current, pickRef.current], { opacity: 1, y: 0 })
+        setPhase('ready')
+        document.body.style.overflow = ''
       },
+    })
+
+    // Fade out deal section
+    tl.to(sectionEl, { opacity: 0, duration: 0.55, ease: 'power2.inOut' }, 0.25)
+
+    // Spread each card overlay into its column (left → right stagger)
+    overlayDivs.forEach(({ div, rect }, i) => {
+      const scaleX = panelW / rect.width
+      const scaleY = vh / rect.height
+      tl.to(div, {
+        x: i * panelW,
+        y: 0,
+        scaleX,
+        scaleY,
+        borderRadius: 0,
+        duration: 0.9,
+        ease: 'power3.inOut',
+      }, i * 0.08)
     })
   }
 
@@ -148,19 +195,16 @@ export default function Deal({ shouldDeal }) {
 
       <div ref={tableRef} className="deal__table">
         <div className="deal__felt" />
-
         <div className="deal__center">
           <img src={logo} alt="ARA Studio" className="deal__logo" />
         </div>
 
-        {/* Dealer deck — bottom-right */}
         <div ref={deckRef} className={`deal__deck${deckDone ? ' is-done' : ''}`}>
           {[0,1,2,3,4].map(i => (
             <div key={i} className="deal__deck-card" style={{ '--i': i }} />
           ))}
         </div>
 
-        {/* Four piles */}
         {PILES.map((pile, pIdx) => (
           <div
             key={pile.id}
@@ -194,7 +238,6 @@ export default function Deal({ shouldDeal }) {
         ))}
       </div>
 
-      {/* Mafia copy */}
       <div className="deal__copy" ref={copyRef}>
         <p className="deal__copy-tag">ALL ROUND ACE STUDIO</p>
         <p className="deal__copy-sub">Every project is a game.<br />We don't play safe.</p>

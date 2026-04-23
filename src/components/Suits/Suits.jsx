@@ -78,7 +78,6 @@ export default function Suits() {
     ScrollTrigger.create({
       trigger: sectionRef.current,
       start: 'top 60%',
-      once: true,
       onEnter: () => {
         flippedRef.current = true
         gsap.to(inners, {
@@ -87,6 +86,12 @@ export default function Suits() {
           stagger: 0.22,
           ease: 'power2.inOut',
         })
+      },
+      onLeaveBack: () => {
+        // Reset panels to back face when scrolling back to Scene 1
+        flippedRef.current = false
+        setHovered(null)
+        gsap.to(inners, { rotateY: 0, duration: 0.5, stagger: 0.06, ease: 'power2.in' })
       },
     })
 
