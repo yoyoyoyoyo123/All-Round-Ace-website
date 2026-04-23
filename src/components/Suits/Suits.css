@@ -1,176 +1,152 @@
 /* =============================================
-   Scene 2: The SUITS
+   Scene 2: The SUITS — full-viewport panels
    ============================================= */
 
 .suits {
   position: relative;
   width: 100vw;
-  min-height: 100vh;
-  background: var(--color-black);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  height: 100vh;
   overflow: hidden;
-  padding: 5rem 0 4rem;
+  background: var(--color-black);
 }
 
-.suits::before {
-  content: '';
+/* ── Watermark title ── */
+.suits__watermark {
   position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    ellipse 65% 55% at 50% 55%,
-    rgba(90, 0, 0, 0.1) 0%,
-    transparent 70%
-  );
-  pointer-events: none;
-}
-
-/* ── Header ── */
-.suits__header {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   text-align: center;
-  margin-bottom: clamp(2.5rem, 4vw, 4.5rem);
-  z-index: 2;
+  z-index: 20;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
 }
 
-.suits__scene-label {
-  font-family: var(--font-heading);
-  font-size: clamp(0.62rem, 0.82vw, 0.78rem);
-  letter-spacing: 0.45em;
-  color: var(--color-red);
-  margin-bottom: 0.5rem;
+.suits.has-hover .suits__watermark {
+  opacity: 0;
 }
 
-.suits__title {
+.suits__wm-scene {
   font-family: var(--font-heading);
-  font-size: clamp(4rem, 8vw, 8.5rem);
-  line-height: 0.88;
-  color: var(--color-white);
+  font-size: clamp(0.65rem, 0.85vw, 0.82rem);
+  letter-spacing: 0.5em;
+  color: rgba(204, 0, 0, 0.5);
+  margin-bottom: 0.4rem;
+}
+
+.suits__wm-title {
+  font-family: var(--font-heading);
+  font-size: clamp(5rem, 10vw, 13rem);
+  line-height: 0.85;
+  color: rgba(255, 255, 255, 0.06);
   letter-spacing: 0.05em;
-  margin-bottom: 0.8rem;
 }
 
-.suits__tagline {
-  font-family: var(--font-body);
-  font-style: italic;
-  font-size: clamp(0.82rem, 1.05vw, 1rem);
-  color: rgba(255, 255, 255, 0.28);
-  letter-spacing: 0.12em;
-}
-
-/* ── Cards row ── */
-.suits__row {
+/* ── Panels row ── */
+.suits__panels {
   display: flex;
-  align-items: flex-end;
-  gap: clamp(10px, 1.4vw, 20px);
-  z-index: 2;
+  width: 100%;
+  height: 100%;
 }
 
-/* ── Column (outer — hover lift target) ── */
-.suits__col {
-  perspective: 1200px;
+/* ── Single panel ── */
+.suits__panel {
+  flex: 1;
+  height: 100%;
+  position: relative;
   cursor: pointer;
-  transition: opacity 0.25s ease;
+  transition:
+    flex 0.55s var(--ease-out),
+    border-color 0.35s ease;
+  border-right: 1px solid rgba(255, 255, 255, 0.04);
+  /* clip each panel so flip doesn't bleed into neighbours */
+  overflow: hidden;
 }
 
-/* ── 3D flip wrapper ── */
-.suits__card-inner {
-  width: clamp(130px, 13.5vw, 195px);
-  height: clamp(186px, 19.5vw, 280px);
+.suits__panel:last-child { border-right: none; }
+
+.suits__panel.is-hovered { flex: 2.8; }
+.suits__panel.is-dim     { flex: 0.62; }
+
+/* ── 3D flip inner ── */
+.suits__panel-inner {
+  width: 100%;
+  height: 100%;
   position: relative;
   transform-style: preserve-3d;
+  /* GSAP sets transformPerspective + rotateY via inline style */
+}
+
+.suits__panel-back,
+.suits__panel-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 /* ── Back face ── */
-.suits__card-back {
-  position: absolute;
-  inset: 0;
-  border-radius: var(--radius-card);
-  background: linear-gradient(150deg, #200505 0%, #0e0e0e 100%);
-  border: 1px solid rgba(204, 0, 0, 0.25);
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
+.suits__panel-back {
+  background: linear-gradient(160deg, #200505 0%, #0c0c0c 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   overflow: hidden;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.6);
 }
 
 .suits__back-pattern {
   position: absolute;
-  inset: 6px;
-  border-radius: 8px;
-  border: 1px solid rgba(204, 0, 0, 0.1);
+  inset: 0;
   background: repeating-linear-gradient(
     45deg,
     transparent,
-    transparent 7px,
-    rgba(204, 0, 0, 0.04) 7px,
-    rgba(204, 0, 0, 0.04) 8px
+    transparent 18px,
+    rgba(204, 0, 0, 0.04) 18px,
+    rgba(204, 0, 0, 0.04) 19px
   );
+}
+
+.suits__back-center {
+  font-size: clamp(4rem, 8vw, 10rem);
+  color: rgba(204, 0, 0, 0.15);
+  position: relative;
+  z-index: 1;
+  user-select: none;
 }
 
 /* ── Front face ── */
-.suits__card-front {
-  position: absolute;
-  inset: 0;
-  border-radius: var(--radius-card);
-  background: linear-gradient(150deg, #200505 0%, #0e0e0e 100%);
-  border: 1px solid rgba(204, 0, 0, 0.25);
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-  transform: rotateY(180deg);   /* pre-rotated — visible when inner = 180° */
+.suits__panel-face {
+  /* pre-rotated — becomes forward-facing when inner reaches 180° */
+  transform: rotateY(180deg);
+  background: linear-gradient(160deg, #180404 0%, #0a0a0a 100%);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: clamp(10px, 1.1vw, 15px);
-  transition: border-color 0.35s ease, box-shadow 0.35s ease;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.6);
-  overflow: hidden;
+  padding: clamp(1.5rem, 2.5vh, 2.5rem) clamp(1.2rem, 1.8vw, 2rem);
+  transition: background 0.4s ease;
 }
 
-/* Inner texture */
-.suits__card-front::before {
-  content: '';
-  position: absolute;
-  inset: 6px;
-  border-radius: 8px;
-  border: 1px solid rgba(204, 0, 0, 0.07);
-  background: repeating-linear-gradient(
-    45deg,
-    transparent,
-    transparent 7px,
-    rgba(204, 0, 0, 0.02) 7px,
-    rgba(204, 0, 0, 0.02) 8px
-  );
-  pointer-events: none;
+.suits__panel.is-joker .suits__panel-back,
+.suits__panel.is-joker .suits__panel-face {
+  background: linear-gradient(160deg, #140f02 0%, #080808 100%);
 }
 
-.suits__col.is-hovered .suits__card-front {
-  border-color: rgba(204, 0, 0, 0.55);
-  box-shadow: 0 24px 56px rgba(0,0,0,0.85), 0 0 28px rgba(204,0,0,0.12);
+.suits__panel.is-hovered .suits__panel-face {
+  background: linear-gradient(160deg, #200505 0%, #0d0d0d 100%);
 }
-
-/* Joker variant */
-.suits__card-front.is-joker {
-  background: linear-gradient(150deg, #1a1505 0%, #0c0c08 100%);
-  border-color: rgba(201, 168, 76, 0.28);
-}
-.suits__card-front.is-joker::before {
-  border-color: rgba(201, 168, 76, 0.06);
-}
-.suits__col.is-hovered .suits__card-front.is-joker {
-  border-color: rgba(201, 168, 76, 0.65);
-  box-shadow: 0 24px 56px rgba(0,0,0,0.85), 0 0 28px rgba(201,168,76,0.15);
+.suits__panel.is-joker.is-hovered .suits__panel-face {
+  background: linear-gradient(160deg, #1a1302 0%, #0c0c08 100%);
 }
 
 /* ── Corner notation ── */
 .suits__corner {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  line-height: 1.1;
+  align-items: flex-start;
+  line-height: 1.05;
   flex-shrink: 0;
 }
+
 .suits__corner--br {
   align-self: flex-end;
   transform: rotate(180deg);
@@ -178,96 +154,113 @@
 
 .suits__rank {
   font-family: var(--font-heading);
-  font-size: clamp(0.85rem, 1.2vw, 1.35rem);
-  color: rgba(255, 255, 255, 0.62);
+  font-size: clamp(1.8rem, 2.8vw, 3.8rem);
   line-height: 1;
+  color: rgba(255, 255, 255, 0.72);
   display: block;
+  transition: color 0.3s ease;
 }
 .suits__suit-sm {
-  font-size: clamp(0.7rem, 0.95vw, 1rem);
+  font-size: clamp(1rem, 1.6vw, 2rem);
   line-height: 1;
-  color: rgba(255, 255, 255, 0.62);
+  color: rgba(255, 255, 255, 0.72);
   display: block;
+  transition: color 0.3s ease;
 }
 
-.suits__card-front.is-red   .suits__rank,
-.suits__card-front.is-red   .suits__suit-sm { color: var(--color-red); }
-.suits__card-front.is-joker .suits__rank {
-  font-size: clamp(0.46rem, 0.65vw, 0.64rem);
-  letter-spacing: 0.08em;
-  color: var(--color-gold);
+.suits__panel.is-red   .suits__rank,
+.suits__panel.is-red   .suits__suit-sm { color: rgba(204, 0, 0, 0.85); }
+.suits__panel.is-joker .suits__rank {
+  font-size: clamp(0.8rem, 1.1vw, 1.1rem);
+  letter-spacing: 0.12em;
+  color: rgba(201, 168, 76, 0.8);
 }
-.suits__card-front.is-joker .suits__suit-sm { color: var(--color-gold); }
+.suits__panel.is-joker .suits__suit-sm { color: rgba(201, 168, 76, 0.8); }
 
-/* ── Card face center ── */
-.suits__face {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: clamp(0.35rem, 0.6vw, 0.7rem);
-  text-align: center;
-}
-
+/* ── Center suit symbol ── */
 .suits__suit-lg {
-  font-size: clamp(2.4rem, 3.6vw, 4.5rem);
-  line-height: 1;
-  color: rgba(255, 255, 255, 0.78);
-  transition: transform 0.35s var(--ease-out);
-}
-.suits__card-front.is-red   .suits__suit-lg { color: var(--color-red); }
-.suits__card-front.is-joker .suits__suit-lg { color: var(--color-gold); }
-.suits__col.is-hovered .suits__suit-lg { transform: translateY(-8px); }
-
-.suits__info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-}
-
-.suits__card-title {
-  font-family: var(--font-heading);
-  font-size: clamp(0.72rem, 1vw, 1.05rem);
-  letter-spacing: 0.06em;
-  color: var(--color-white);
-  line-height: 1.25;
-  display: flex;
-  flex-direction: column;
-}
-
-.suits__card-sub {
-  font-family: var(--font-body);
-  font-style: italic;
-  font-size: clamp(0.55rem, 0.72vw, 0.72rem);
-  color: rgba(255, 255, 255, 0.3);
-  letter-spacing: 0.05em;
-}
-
-/* ── Description — revealed on hover ── */
-.suits__desc {
-  font-family: var(--font-body);
-  font-style: italic;
-  font-size: clamp(0.55rem, 0.68vw, 0.68rem);
-  line-height: 1.62;
-  letter-spacing: 0.02em;
-  color: rgba(255, 255, 255, 0);
-  transition: color 0.35s ease;
-  max-width: 90%;
-}
-.suits__col.is-hovered .suits__desc { color: rgba(255, 255, 255, 0.5); }
-
-/* ── Caption ── */
-.suits__caption {
   position: absolute;
-  bottom: 2.5vh;
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
+  font-size: clamp(4rem, 7vw, 9rem);
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.12);
+  pointer-events: none;
+  transition: opacity 0.4s ease, transform 0.4s var(--ease-out);
+  user-select: none;
+}
+
+.suits__panel.is-red   .suits__suit-lg { color: rgba(204, 0, 0, 0.18); }
+.suits__panel.is-joker .suits__suit-lg { color: rgba(201, 168, 76, 0.18); }
+
+.suits__panel.is-hovered .suits__suit-lg {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(1.3);
+}
+
+/* ── Hover content ── */
+.suits__content {
+  position: absolute;
+  left: clamp(1.5rem, 2.5vw, 3rem);
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0;
+  transition: opacity 0.4s ease 0.1s;
+  max-width: min(380px, 80%);
+  pointer-events: none;
+}
+
+.suits__panel.is-hovered .suits__content {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.suits__content-sub {
+  font-family: var(--font-heading);
+  font-size: clamp(0.6rem, 0.85vw, 0.82rem);
+  letter-spacing: 0.38em;
+  color: var(--color-red);
+  margin-bottom: 0.6rem;
+}
+.suits__panel.is-joker .suits__content-sub { color: var(--color-gold); }
+
+.suits__content-title {
+  font-family: var(--font-heading);
+  font-size: clamp(2rem, 3.5vw, 4.5rem);
+  line-height: 0.92;
+  color: var(--color-white);
+  letter-spacing: 0.03em;
+  margin-bottom: 1.2rem;
+}
+
+.suits__content-desc {
   font-family: var(--font-body);
   font-style: italic;
-  font-size: clamp(0.58rem, 0.72vw, 0.7rem);
-  color: rgba(255, 255, 255, 0.17);
-  letter-spacing: 0.08em;
-  white-space: nowrap;
-  z-index: 2;
+  font-size: clamp(0.82rem, 1.05vw, 1rem);
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 0.02em;
+  margin-bottom: 1.6rem;
 }
+
+.suits__content-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.suits__tag {
+  font-family: var(--font-heading);
+  font-size: clamp(0.52rem, 0.7vw, 0.68rem);
+  letter-spacing: 0.2em;
+  color: rgba(255, 255, 255, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  white-space: nowrap;
+  transition: color 0.25s ease, border-color 0.25s ease;
+}
+
+.suits__panel.is-red   .suits__tag { color: rgba(204, 0, 0, 0.6); border-color: rgba(204, 0, 0, 0.25); }
+.suits__panel.is-joker .suits__tag { color: rgba(201, 168, 76, 0.6); border-color: rgba(201, 168, 76, 0.25); }
