@@ -129,6 +129,14 @@ export default function Deal({ shouldDeal }) {
           onComplete: () => {
             gsap.to(window, { scrollTo: { y: '#suits' }, duration: 0.01 })
             gsap.set(sectionEl, { opacity: 1 })
+            // Reset all piles so scrolling back up shows correct state
+            setTimeout(() => {
+              pileRefs.current.forEach(p => {
+                if (p) gsap.set(p, { clearProps: 'x,y,scale,opacity' })
+              })
+              gsap.set([copyRef.current, pickRef.current], { clearProps: 'opacity,y' })
+              setPhase('ready')
+            }, 80)
           },
         })
       },

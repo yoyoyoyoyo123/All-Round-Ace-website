@@ -12,32 +12,31 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  padding: 6rem 0 4rem;
+  padding: 5rem 0 4rem;
 }
 
-/* Subtle radial vignette for depth */
 .suits::before {
   content: '';
   position: absolute;
   inset: 0;
   background: radial-gradient(
-    ellipse 70% 60% at 50% 55%,
-    rgba(100, 0, 0, 0.12) 0%,
+    ellipse 65% 55% at 50% 55%,
+    rgba(90, 0, 0, 0.1) 0%,
     transparent 70%
   );
   pointer-events: none;
 }
 
-/* ── Section header ── */
+/* ── Header ── */
 .suits__header {
   text-align: center;
-  margin-bottom: 5rem;
+  margin-bottom: clamp(2.5rem, 4vw, 4.5rem);
   z-index: 2;
 }
 
 .suits__scene-label {
   font-family: var(--font-heading);
-  font-size: clamp(0.65rem, 0.85vw, 0.8rem);
+  font-size: clamp(0.62rem, 0.82vw, 0.78rem);
   letter-spacing: 0.45em;
   color: var(--color-red);
   margin-bottom: 0.5rem;
@@ -45,7 +44,7 @@
 
 .suits__title {
   font-family: var(--font-heading);
-  font-size: clamp(4.5rem, 9vw, 9rem);
+  font-size: clamp(4rem, 8vw, 8.5rem);
   line-height: 0.88;
   color: var(--color-white);
   letter-spacing: 0.05em;
@@ -55,79 +54,113 @@
 .suits__tagline {
   font-family: var(--font-body);
   font-style: italic;
-  font-size: clamp(0.9rem, 1.2vw, 1.1rem);
-  color: rgba(255, 255, 255, 0.3);
+  font-size: clamp(0.82rem, 1.05vw, 1rem);
+  color: rgba(255, 255, 255, 0.28);
   letter-spacing: 0.12em;
 }
 
-/* ── Hand container ── */
-.suits__hand {
-  position: relative;
-  width: clamp(170px, 19vw, 275px);
-  height: clamp(245px, 27vw, 390px);
+/* ── Cards row ── */
+.suits__row {
+  display: flex;
+  align-items: flex-end;
+  gap: clamp(10px, 1.4vw, 20px);
   z-index: 2;
 }
 
-/* ── Individual card ── */
-.suits__card {
+/* ── Column (outer — hover lift target) ── */
+.suits__col {
+  perspective: 1200px;
+  cursor: pointer;
+  transition: opacity 0.25s ease;
+}
+
+/* ── 3D flip wrapper ── */
+.suits__card-inner {
+  width: clamp(130px, 13.5vw, 195px);
+  height: clamp(186px, 19.5vw, 280px);
+  position: relative;
+  transform-style: preserve-3d;
+}
+
+/* ── Back face ── */
+.suits__card-back {
   position: absolute;
   inset: 0;
   border-radius: var(--radius-card);
   background: linear-gradient(150deg, #200505 0%, #0e0e0e 100%);
   border: 1px solid rgba(204, 0, 0, 0.25);
-  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.7);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  overflow: hidden;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+}
+
+.suits__back-pattern {
+  position: absolute;
+  inset: 6px;
+  border-radius: 8px;
+  border: 1px solid rgba(204, 0, 0, 0.1);
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 7px,
+    rgba(204, 0, 0, 0.04) 7px,
+    rgba(204, 0, 0, 0.04) 8px
+  );
+}
+
+/* ── Front face ── */
+.suits__card-front {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-card);
+  background: linear-gradient(150deg, #200505 0%, #0e0e0e 100%);
+  border: 1px solid rgba(204, 0, 0, 0.25);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: rotateY(180deg);   /* pre-rotated — visible when inner = 180° */
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: clamp(12px, 1.4vw, 18px);
-  cursor: pointer;
-  transform-origin: bottom center;
-  /* Only transition non-transform properties — GSAP owns all transforms */
+  padding: clamp(10px, 1.1vw, 15px);
   transition: border-color 0.35s ease, box-shadow 0.35s ease;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+  overflow: hidden;
 }
 
-/* Inner border texture */
-.suits__card::before {
+/* Inner texture */
+.suits__card-front::before {
   content: '';
   position: absolute;
   inset: 6px;
   border-radius: 8px;
-  border: 1px solid rgba(204, 0, 0, 0.08);
+  border: 1px solid rgba(204, 0, 0, 0.07);
   background: repeating-linear-gradient(
     45deg,
     transparent,
-    transparent 8px,
-    rgba(204, 0, 0, 0.025) 8px,
-    rgba(204, 0, 0, 0.025) 9px
+    transparent 7px,
+    rgba(204, 0, 0, 0.02) 7px,
+    rgba(204, 0, 0, 0.02) 8px
   );
   pointer-events: none;
 }
 
-.suits__card.is-hovered {
+.suits__col.is-hovered .suits__card-front {
   border-color: rgba(204, 0, 0, 0.55);
-  box-shadow: 0 28px 64px rgba(0, 0, 0, 0.85), 0 0 32px rgba(204, 0, 0, 0.12);
-  z-index: 10;
+  box-shadow: 0 24px 56px rgba(0,0,0,0.85), 0 0 28px rgba(204,0,0,0.12);
 }
 
-.suits__card.is-joker {
+/* Joker variant */
+.suits__card-front.is-joker {
   background: linear-gradient(150deg, #1a1505 0%, #0c0c08 100%);
-  border-color: rgba(201, 168, 76, 0.3);
+  border-color: rgba(201, 168, 76, 0.28);
 }
-
-.suits__card.is-joker::before {
+.suits__card-front.is-joker::before {
   border-color: rgba(201, 168, 76, 0.06);
-  background: repeating-linear-gradient(
-    45deg,
-    transparent,
-    transparent 8px,
-    rgba(201, 168, 76, 0.02) 8px,
-    rgba(201, 168, 76, 0.02) 9px
-  );
 }
-
-.suits__card.is-joker.is-hovered {
-  border-color: rgba(201, 168, 76, 0.7);
-  box-shadow: 0 28px 64px rgba(0, 0, 0, 0.85), 0 0 32px rgba(201, 168, 76, 0.15);
+.suits__col.is-hovered .suits__card-front.is-joker {
+  border-color: rgba(201, 168, 76, 0.65);
+  box-shadow: 0 24px 56px rgba(0,0,0,0.85), 0 0 28px rgba(201,168,76,0.15);
 }
 
 /* ── Corner notation ── */
@@ -138,7 +171,6 @@
   line-height: 1.1;
   flex-shrink: 0;
 }
-
 .suits__corner--br {
   align-self: flex-end;
   transform: rotate(180deg);
@@ -146,100 +178,86 @@
 
 .suits__rank {
   font-family: var(--font-heading);
-  font-size: clamp(1rem, 1.4vw, 1.5rem);
-  color: rgba(255, 255, 255, 0.65);
-  letter-spacing: 0;
+  font-size: clamp(0.85rem, 1.2vw, 1.35rem);
+  color: rgba(255, 255, 255, 0.62);
   line-height: 1;
   display: block;
 }
-
 .suits__suit-sm {
-  font-size: clamp(0.8rem, 1.1vw, 1.1rem);
+  font-size: clamp(0.7rem, 0.95vw, 1rem);
   line-height: 1;
-  color: rgba(255, 255, 255, 0.65);
+  color: rgba(255, 255, 255, 0.62);
   display: block;
 }
 
-/* Red card colours */
-.suits__card.is-red .suits__rank,
-.suits__card.is-red .suits__suit-sm {
-  color: var(--color-red);
-}
-
-/* Joker corner colours */
-.suits__card.is-joker .suits__rank {
-  font-size: clamp(0.55rem, 0.75vw, 0.72rem);
+.suits__card-front.is-red   .suits__rank,
+.suits__card-front.is-red   .suits__suit-sm { color: var(--color-red); }
+.suits__card-front.is-joker .suits__rank {
+  font-size: clamp(0.46rem, 0.65vw, 0.64rem);
   letter-spacing: 0.08em;
   color: var(--color-gold);
 }
-.suits__card.is-joker .suits__suit-sm {
-  color: var(--color-gold);
-}
+.suits__card-front.is-joker .suits__suit-sm { color: var(--color-gold); }
 
-/* ── Card face (center content) ── */
+/* ── Card face center ── */
 .suits__face {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.65rem;
+  gap: clamp(0.35rem, 0.6vw, 0.7rem);
   text-align: center;
 }
 
 .suits__suit-lg {
-  font-size: clamp(3rem, 4.5vw, 5.5rem);
+  font-size: clamp(2.4rem, 3.6vw, 4.5rem);
   line-height: 1;
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(255, 255, 255, 0.78);
   transition: transform 0.35s var(--ease-out);
 }
-
-.suits__card.is-red   .suits__suit-lg { color: var(--color-red); }
-.suits__card.is-joker .suits__suit-lg { color: var(--color-gold); }
-
-.suits__card.is-hovered .suits__suit-lg {
-  transform: translateY(-10px);
-}
+.suits__card-front.is-red   .suits__suit-lg { color: var(--color-red); }
+.suits__card-front.is-joker .suits__suit-lg { color: var(--color-gold); }
+.suits__col.is-hovered .suits__suit-lg { transform: translateY(-8px); }
 
 .suits__info {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.2rem;
 }
 
 .suits__card-title {
   font-family: var(--font-heading);
-  font-size: clamp(0.85rem, 1.2vw, 1.25rem);
-  letter-spacing: 0.07em;
+  font-size: clamp(0.72rem, 1vw, 1.05rem);
+  letter-spacing: 0.06em;
   color: var(--color-white);
   line-height: 1.25;
+  display: flex;
+  flex-direction: column;
 }
 
 .suits__card-sub {
   font-family: var(--font-body);
   font-style: italic;
-  font-size: clamp(0.65rem, 0.85vw, 0.82rem);
-  color: rgba(255, 255, 255, 0.35);
-  letter-spacing: 0.06em;
+  font-size: clamp(0.55rem, 0.72vw, 0.72rem);
+  color: rgba(255, 255, 255, 0.3);
+  letter-spacing: 0.05em;
 }
 
-/* ── Description text — revealed on hover ── */
+/* ── Description — revealed on hover ── */
 .suits__desc {
   font-family: var(--font-body);
   font-style: italic;
-  font-size: clamp(0.62rem, 0.78vw, 0.78rem);
-  line-height: 1.65;
+  font-size: clamp(0.55rem, 0.68vw, 0.68rem);
+  line-height: 1.62;
   letter-spacing: 0.02em;
   color: rgba(255, 255, 255, 0);
   transition: color 0.35s ease;
-  max-width: 88%;
+  max-width: 90%;
 }
+.suits__col.is-hovered .suits__desc { color: rgba(255, 255, 255, 0.5); }
 
-.suits__card.is-hovered .suits__desc {
-  color: rgba(255, 255, 255, 0.52);
-}
-
-/* ── Bottom caption ── */
+/* ── Caption ── */
 .suits__caption {
   position: absolute;
   bottom: 2.5vh;
@@ -247,8 +265,8 @@
   transform: translateX(-50%);
   font-family: var(--font-body);
   font-style: italic;
-  font-size: clamp(0.65rem, 0.8vw, 0.78rem);
-  color: rgba(255, 255, 255, 0.2);
+  font-size: clamp(0.58rem, 0.72vw, 0.7rem);
+  color: rgba(255, 255, 255, 0.17);
   letter-spacing: 0.08em;
   white-space: nowrap;
   z-index: 2;
