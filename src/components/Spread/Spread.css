@@ -1,0 +1,289 @@
+/* =============================================
+   Scene 3: The SPREAD
+   ============================================= */
+
+.spread {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  background: var(--color-black);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.spread::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 80% 60% at 50% 60%,
+    rgba(80, 0, 0, 0.18) 0%,
+    transparent 65%
+  );
+  pointer-events: none;
+}
+
+/* ── Header ── */
+.spread__header {
+  position: absolute;
+  top: max(5rem, 80px);
+  left: clamp(2rem, 4vw, 5rem);
+  z-index: 2;
+}
+
+.spread__scene-label {
+  font-family: var(--font-heading);
+  font-size: clamp(0.62rem, 0.82vw, 0.78rem);
+  letter-spacing: 0.45em;
+  color: var(--color-red);
+  margin-bottom: 0.3rem;
+}
+
+.spread__title {
+  font-family: var(--font-heading);
+  font-size: clamp(3.5rem, 7vw, 8rem);
+  line-height: 0.88;
+  color: var(--color-white);
+  letter-spacing: 0.04em;
+  margin-bottom: 0.6rem;
+}
+
+.spread__tagline {
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: clamp(0.85rem, 1.1vw, 1rem);
+  color: rgba(255, 255, 255, 0.28);
+  letter-spacing: 0.1em;
+}
+
+/* ── Stage (all cards stack here) ── */
+.spread__stage {
+  position: relative;
+  width: clamp(140px, 15vw, 215px);
+  height: clamp(200px, 21.5vw, 308px);
+  /* cards use absolute + GSAP x/y to spread from this centre */
+}
+
+/* ── Individual card ── */
+.spread__card {
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+  transition: box-shadow 0.3s ease;
+}
+
+.spread__card-back,
+.spread__card-face {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+
+/* ── Back face ── */
+.spread__card-back {
+  background: linear-gradient(150deg, #200505 0%, #0d0d0d 100%);
+  border: 1px solid rgba(204, 0, 0, 0.28);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.7);
+}
+
+.spread__back-pattern {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 9px,
+    rgba(204, 0, 0, 0.04) 9px,
+    rgba(204, 0, 0, 0.04) 10px
+  );
+}
+
+/* ── Front face ── */
+.spread__card-face {
+  background: linear-gradient(155deg, #1c0303 0%, #0c0c0c 100%);
+  border: 1px solid rgba(204, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: clamp(0.8rem, 1.2vw, 1.2rem);
+  transition: border-color 0.3s ease, background 0.3s ease;
+}
+
+.spread__card.is-hovered .spread__card-face {
+  border-color: rgba(204, 0, 0, 0.55);
+  background: linear-gradient(155deg, #240404 0%, #101010 100%);
+}
+
+.spread__card.is-red .spread__card-face {
+  border-color: rgba(204, 0, 0, 0.3);
+}
+
+.spread__card.is-coming .spread__card-face {
+  border-color: rgba(255, 255, 255, 0.06);
+  background: linear-gradient(155deg, #111 0%, #080808 100%);
+}
+
+/* ── Corner notation ── */
+.spread__corner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.05;
+  flex-shrink: 0;
+}
+
+.spread__corner--br {
+  align-self: flex-end;
+  transform: rotate(180deg);
+}
+
+.spread__rank {
+  font-family: var(--font-heading);
+  font-size: clamp(1rem, 1.5vw, 1.8rem);
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.55);
+  display: block;
+}
+
+.spread__suit-sm {
+  font-size: clamp(0.7rem, 1vw, 1.1rem);
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.55);
+  display: block;
+}
+
+.spread__card.is-red .spread__rank,
+.spread__card.is-red .spread__suit-sm { color: rgba(204, 0, 0, 0.75); }
+
+/* ── Center suit watermark ── */
+.spread__suit-lg {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: clamp(2.5rem, 4vw, 5.5rem);
+  color: rgba(255, 255, 255, 0.07);
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  user-select: none;
+  line-height: 1;
+}
+
+.spread__card.is-red   .spread__suit-lg { color: rgba(204, 0, 0, 0.1); }
+.spread__card.is-coming .spread__suit-lg {
+  color: rgba(255, 255, 255, 0.04);
+  font-size: clamp(2rem, 3vw, 4rem);
+}
+
+.spread__card.is-hovered .spread__suit-lg { opacity: 0; }
+
+/* ── Project content (hover-revealed) ── */
+.spread__content {
+  position: absolute;
+  inset: 0;
+  padding: clamp(0.8rem, 1.2vw, 1.2rem);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  /* top gradient so corner text stays readable */
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(10, 0, 0, 0.82) 45%,
+    rgba(10, 0, 0, 0.97) 100%
+  );
+}
+
+.spread__card.is-hovered .spread__content { opacity: 1; pointer-events: auto; }
+
+.spread__content-cat {
+  font-family: var(--font-heading);
+  font-size: clamp(0.48rem, 0.65vw, 0.62rem);
+  letter-spacing: 0.35em;
+  color: var(--color-red);
+}
+
+.spread__card.is-red .spread__content-cat { color: var(--color-red); }
+
+.spread__content-title {
+  font-family: var(--font-heading);
+  font-size: clamp(1rem, 1.6vw, 2rem);
+  line-height: 1;
+  color: var(--color-white);
+  letter-spacing: 0.04em;
+}
+
+.spread__content-desc {
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: clamp(0.55rem, 0.72vw, 0.7rem);
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.45);
+  letter-spacing: 0.02em;
+}
+
+.spread__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.2rem;
+}
+
+.spread__tag {
+  font-family: var(--font-heading);
+  font-size: clamp(0.42rem, 0.58vw, 0.55rem);
+  letter-spacing: 0.18em;
+  color: rgba(255, 255, 255, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.spread__cta {
+  font-family: var(--font-heading);
+  font-size: clamp(0.5rem, 0.68vw, 0.65rem);
+  letter-spacing: 0.22em;
+  color: var(--color-red);
+  margin-top: 0.3rem;
+  display: block;
+}
+
+/* ── Coming soon content ── */
+.spread__content--coming {
+  justify-content: center;
+  align-items: center;
+  background: none;
+}
+
+.spread__coming-text {
+  font-family: var(--font-heading);
+  font-size: clamp(0.65rem, 0.9vw, 0.85rem);
+  letter-spacing: 0.28em;
+  color: rgba(255, 255, 255, 0.2);
+  text-align: center;
+  line-height: 1.6;
+}
+
+/* ── Bottom hint ── */
+.spread__hint {
+  position: absolute;
+  bottom: 2.5vh;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: clamp(0.62rem, 0.78vw, 0.75rem);
+  color: rgba(255, 255, 255, 0.18);
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  z-index: 2;
+}
