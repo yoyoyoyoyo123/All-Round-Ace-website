@@ -7,7 +7,49 @@
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  background: var(--color-black);
+  background:
+    radial-gradient(circle at 50% -12%, rgba(245,181,86,0) 0%, rgba(245,181,86,0) 38%),
+    radial-gradient(circle at 20% 80%, rgba(0,0,0,0.42), transparent 40%),
+    #050505;
+  perspective: 1900px;
+}
+
+.deal::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 50% 48%, rgba(239,172,88,0), transparent 42%),
+    radial-gradient(circle at 76% 58%, rgba(0,0,0,0.58), transparent 45%),
+    radial-gradient(circle at 14% 18%, rgba(0,0,0,0.44), transparent 38%);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.deal::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.52) 100%);
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* 無燈具造型，僅保留由上而下的暖色主光暈 */
+.deal__key-glow {
+  position: absolute;
+  top: -6vh;
+  left: 53%;
+  transform: translateX(-50%);
+  z-index: 30;
+  pointer-events: none;
+  width: min(58vw, 700px);
+  height: min(58vw, 700px);
+  border-radius: 50%;
+  opacity: 0;
+  will-change: opacity;
+  background: radial-gradient(circle at 50% 30%, rgba(241,163,67,0.42) 0%, rgba(241,163,67,0.12) 38%, rgba(241,163,67,0) 72%);
+  filter: blur(5px);
 }
 
 /* ── Full-screen table ── */
@@ -15,6 +57,10 @@
   position: absolute;
   inset: 0;
   will-change: opacity;
+  transform-style: preserve-3d;
+  transform: rotateX(40deg) rotateZ(0deg) translateY(10vh) translateX(0vh) scale(1.5);
+  transform-origin: 50% 82%;
+  z-index: 2;
 }
 
 .deal__felt {
@@ -25,16 +71,27 @@
   width: 110vw;
   height: 110vw;
   border-radius: 50%;
-  background: radial-gradient(
-    ellipse 65% 55% at 50% 48%,
-    #200505 0%,
-    #150202 35%,
-    #0c0c0c 65%,
-    #060606 100%
-  );
-  border: 2px solid rgba(204, 0, 0, 0.2);
+  background:
+    radial-gradient(ellipse 34% 19% at 50% 50%, rgba(255,223,160,0.22), rgba(255,223,160,0) 70%),
+    repeating-linear-gradient(
+      28deg,
+      rgba(255,255,255,0.028) 0,
+      rgba(255,255,255,0.028) 2px,
+      rgba(0,0,0,0) 2px,
+      rgba(0,0,0,0) 8px
+    ),
+    radial-gradient(
+      ellipse 66% 57% at 50% 48%,
+      #5f0808 0%,
+      #420606 34%,
+      #2b0404 62%,
+      #140202 100%
+    );
+  border: 2px solid rgba(201, 124, 62, 0.35);
   box-shadow:
-    inset 0 0 140px rgba(0,0,0,0.75),
+    inset 0 0 160px rgba(0,0,0,0.68),
+    inset 0 -38px 80px rgba(0,0,0,0.58),
+    0 70px 100px rgba(0,0,0,0.64),
     0 0 0 1px rgba(255,255,255,0.025);
 }
 
@@ -51,7 +108,7 @@
 .deal__logo {
   width: clamp(200px, 24vw, 360px);
   filter: brightness(0) invert(1);
-  opacity: 0.1;
+  opacity: 0.07;
 }
 
 /* ── Source deck ── */
@@ -63,6 +120,7 @@
   height: clamp(98px, 10.5vw, 138px);
   z-index: 3;
   transition: opacity 0.6s ease;
+  filter: drop-shadow(22px 20px 20px rgba(0,0,0,0.58));
 }
 .deal__deck.is-done { opacity: 0; pointer-events: none; }
 
@@ -86,14 +144,15 @@
   gap: 1.2rem;
   z-index: 4;
   cursor: default;
+  filter: drop-shadow(26px 18px 18px rgba(0,0,0,0.55));
 }
 
 .deal__pile.is-active { cursor: pointer; }
 
-.deal__pile--top    { top: 8vh;    left: 50%;  transform: translateX(-50%); }
-.deal__pile--right  { top: 50%;    right: 6vw; transform: translateY(-50%); }
-.deal__pile--bottom { bottom: 14vh;left: 50%;  transform: translateX(-50%); }
-.deal__pile--left   { top: 50%;    left: 6vw;  transform: translateY(-50%); }
+.deal__pile--left-top     { top: 50%; left: 20vw; transform: translateY(-50%); }
+.deal__pile--top          { top: 7vh; left: 50%; transform: translateX(-50%); }
+.deal__pile--right-middle { top: 50%; right: 20vw; transform: translateY(-50%); }
+.deal__pile--right-bottom { bottom: 10vh; left: 50%; transform: translateX(-50%); }
 
 /* ── Card stack ── */
 .deal__cards {
@@ -107,13 +166,17 @@
   position: absolute;
   inset: 0;
   border-radius: var(--radius-card);
-  background: linear-gradient(150deg, #1e0404 0%, #0e0e0e 100%);
-  border: 1px solid rgba(204,0,0,0.22);
+  background:
+    radial-gradient(circle at 18% 22%, rgba(255,255,255,0.24), transparent 42%),
+    linear-gradient(145deg, #e8deca 0%, #cfbfa2 45%, #b99f78 100%);
+  border: 1px solid rgba(78, 52, 24, 0.5);
   /* default stacked position */
   transform:
-    translateY(calc(var(--c) * -2.5px))
-    rotate(calc((var(--c) - 2) * 0.8deg));
+    translateX(calc(var(--c) * 1.2px))
+    translateY(calc(var(--c) * -3px))
+    rotate(calc((var(--c) - 3) * 0.65deg));
   transition: transform 0.4s var(--ease-out), box-shadow 0.4s ease;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.38);
 }
 
 .deal__card::before {
@@ -121,31 +184,32 @@
   position: absolute;
   inset: 6px;
   border-radius: 8px;
-  border: 1px solid rgba(204,0,0,0.1);
+  border: 1px solid rgba(65, 38, 10, 0.22);
   background: repeating-linear-gradient(
-    45deg,
+    35deg,
     transparent,
-    transparent 7px,
-    rgba(204,0,0,0.035) 7px,
-    rgba(204,0,0,0.035) 8px
+    transparent 8px,
+    rgba(111, 71, 35, 0.06) 8px,
+    rgba(111, 71, 35, 0.06) 9px
   );
 }
 
 /* top face card */
 .deal__card--top {
-  background: linear-gradient(150deg, #1e0404 0%, #111 100%);
-  border-color: rgba(204,0,0,0.5);
+  background:
+    radial-gradient(circle at 50% -20%, rgba(255,255,255,0.6), transparent 54%),
+    linear-gradient(150deg, #f8f2e7 0%, #f0e5d0 100%);
+  border-color: rgba(89, 61, 28, 0.52);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+  box-shadow:
+    0 12px 28px rgba(0,0,0,0.55),
+    0 0 0 1px rgba(255,255,255,0.28) inset;
   transform: translateY(-8px);
 }
 
 /* ── Hover: fan spread (5 cards visible) ── */
-.deal__pile.is-hovered .deal__cards {
-  /* extra height to accommodate upward fan */
-}
 
 .deal__pile.is-hovered .deal__card:nth-child(1) {
   transform: translateX(-38px) translateY(6px) rotate(-18deg);
@@ -165,16 +229,53 @@
 }
 .deal__pile.is-hovered .deal__card--top {
   transform: translateX(38px) translateY(6px) rotate(18deg);
-  box-shadow: 4px 8px 28px rgba(0,0,0,0.6), 0 0 16px rgba(204,0,0,0.2);
+  box-shadow: 4px 8px 28px rgba(0,0,0,0.6), 0 0 16px rgba(201,168,76,0.35);
 }
 
-.deal__suit {
-  font-size: clamp(1.8rem, 2.8vw, 2.6rem);
+.deal__face {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  color: #121212;
+  font-family: var(--font-body);
+}
+
+.deal__face.is-red {
+  color: #9c1010;
+}
+
+.deal__face-corner {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: clamp(0.86rem, 1vw, 1rem);
+  line-height: 0.92;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.deal__face-corner--tl {
+  top: 10px;
+  left: 10px;
+}
+
+.deal__face-corner--br {
+  bottom: 10px;
+  right: 10px;
+  transform: rotate(180deg);
+}
+
+.deal__face-center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: clamp(2.1rem, 3.5vw, 3rem);
   line-height: 1;
-  color: var(--color-white);
+  color: currentColor;
   user-select: none;
 }
-.deal__suit.is-red { color: var(--color-red); }
 
 /* ── Slogan ── */
 .deal__slogan {
@@ -187,14 +288,14 @@
   line-height: 1.55;
   text-align: center;
   letter-spacing: 0.03em;
-  color: rgba(255,255,255,0);
+  color: rgba(255,242,224,0);
   transition: color 0.3s ease, transform 0.35s var(--ease-out);
   transform: translateY(8px);
   pointer-events: none;
   white-space: nowrap;
 }
 .deal__pile.is-hovered .deal__slogan {
-  color: rgba(255,255,255,0.6);
+  color: rgba(255,236,209,0.75);
   transform: translateY(0);
 }
 
@@ -232,6 +333,12 @@
   z-index: 10;
   text-align: right;
   opacity: 0;
+}
+
+@media (max-width: 900px) {
+  .deal__table {
+    transform: rotateX(62deg) rotateZ(-6deg) translateY(-16vh) scale(1.2);
+  }
 }
 
 .deal__pick {

@@ -7,13 +7,13 @@ import './Deal.css'
 gsap.registerPlugin(ScrollTrigger)
 
 const PILES = [
-  { id: 'top',    suit: '♠', slogan: 'We Engineer\nthe Impossible',   isRed: false },
-  { id: 'right',  suit: '♥', slogan: 'We Feel What\nOthers Code',      isRed: true  },
-  { id: 'bottom', suit: '♦', slogan: 'We Create What\nOthers Imagine', isRed: true  },
-  { id: 'left',   suit: '♣', slogan: 'We Play a\nDifferent Game',      isRed: false },
+  { id: 'left-top',     suit: '♣', rank: 'A', slogan: 'We Play a\nDifferent Game',      isRed: false },
+  { id: 'top',          suit: '♠', rank: 'A', slogan: 'We Engineer\nthe Impossible',   isRed: false },
+  { id: 'right-middle', suit: '♦', rank: 'A', slogan: 'We Create What\nOthers Imagine', isRed: true  },
+  { id: 'right-bottom', suit: '♥', rank: 'A', slogan: 'We Feel What\nOthers Code',      isRed: true  },
 ]
 
-const CARDS_PER_PILE = 5
+const CARDS_PER_PILE = 8
 const DEAL_ORDER = Array.from({ length: CARDS_PER_PILE * PILES.length }, (_, i) => i % PILES.length)
 
 export default function Deal({ shouldDeal }) {
@@ -24,6 +24,7 @@ export default function Deal({ shouldDeal }) {
   const cardRefs   = useRef([])
   const copyRef    = useRef(null)
   const pickRef    = useRef(null)
+  const keyGlowRef = useRef(null)
 
   const [phase,    setPhase]    = useState('idle')
   const [hovered,  setHovered]  = useState(null)
@@ -50,6 +51,11 @@ export default function Deal({ shouldDeal }) {
       },
     })
 
+    const glowEl = keyGlowRef.current
+    if (glowEl) {
+      gsap.set(glowEl, { opacity: 0 })
+    }
+
     tl.to(tableRef.current, { opacity: 1, duration: 0.4, ease: 'power2.out' })
 
     DEAL_ORDER.forEach((pileIdx, dealIdx) => {
@@ -74,6 +80,7 @@ export default function Deal({ shouldDeal }) {
     gsap.set(tableRef.current, { opacity: 0 })
     gsap.set(copyRef.current,  { opacity: 0, y: 24 })
     gsap.set(pickRef.current,  { opacity: 0, y: 20 })
+    if (keyGlowRef.current) gsap.set(keyGlowRef.current, { opacity: 0 })
     const allCards = cardRefs.current.flat().filter(Boolean)
     gsap.set(allCards, { opacity: 0 })
 
@@ -88,6 +95,7 @@ export default function Deal({ shouldDeal }) {
           })
           // Restore copy + pick text (set explicitly — CSS defaults to opacity:0)
           gsap.set([copyRef.current, pickRef.current], { opacity: 1, y: 0 })
+          if (keyGlowRef.current) gsap.set(keyGlowRef.current, { opacity: 0 })
           setPhase('ready')
           setHovered(null)
         }
@@ -140,8 +148,8 @@ export default function Deal({ shouldDeal }) {
       div.style.cssText = `
         position:absolute; left:0; top:0;
         width:${rect.width}px; height:${rect.height}px;
-        background:linear-gradient(150deg,#200505 0%,#0e0e0e 100%);
-        border:1px solid rgba(204,0,0,0.3);
+        background:linear-gradient(145deg,#e8deca 0%,#cfbfa2 45%,#b99f78 100%);
+        border:1px solid rgba(78,52,24,0.45);
         border-radius:12px;
       `
       overlayEl.appendChild(div)
@@ -191,7 +199,12 @@ export default function Deal({ shouldDeal }) {
   }
 
   return (
-    <section ref={sectionRef} id="deal" className="deal">
+    <section
+      ref={sectionRef}
+      id="deal"
+      className={`deal${phase === 'idle' ? '' : ' deal--lit'}`}
+    >
+      <div ref={keyGlowRef} className="deal__key-glow" aria-hidden="true" />
 
       <div ref={tableRef} className="deal__table">
         <div className="deal__felt" />
@@ -226,7 +239,17 @@ export default function Deal({ shouldDeal }) {
                   style={{ '--c': cIdx }}
                 >
                   {cIdx === CARDS_PER_PILE - 1 && (
-                    <span className={`deal__suit${pile.isRed ? ' is-red' : ''}`}>{pile.suit}</span>
+                    <div className={`deal__face${pile.isRed ? ' is-red' : ''}`}>
+                      <span className="deal__face-corner deal__face-corner--tl">
+                        <span>{pile.rank}</span>
+                        <span>{pile.suit}</span>
+                      </span>
+                      <span className="deal__face-center">{pile.suit}</span>
+                      <span className="deal__face-corner deal__face-corner--br">
+                        <span>{pile.rank}</span>
+                        <span>{pile.suit}</span>
+                      </span>
+                    </div>
                   )}
                 </div>
               ))}
