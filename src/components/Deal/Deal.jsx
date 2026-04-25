@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useCallback } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import logo from '../../assets/logo.png'
@@ -6,247 +6,157 @@ import './Deal.css'
 
 gsap.registerPlugin(ScrollTrigger)
 
-const PILES = [
-  { id: 'top',    suit: '♠', slogan: 'We Engineer\nthe Impossible',   isRed: false },
-  { id: 'right',  suit: '♥', slogan: 'We Feel What\nOthers Code',      isRed: true  },
-  { id: 'bottom', suit: '♦', slogan: 'We Create What\nOthers Imagine', isRed: true  },
-  { id: 'left',   suit: '♣', slogan: 'We Play a\nDifferent Game',      isRed: false },
+// Five royal-flush cards face-down — the hand you're about to play
+const CARDS = [
+  { suit: '♠', isRed: false },
+  { suit: '♥', isRed: true  },
+  { suit: '♦', isRed: true  },
+  { suit: '♣', isRed: false },
+  { suit: '♠', isRed: false },
 ]
 
-const CARDS_PER_PILE = 5
-const DEAL_ORDER = Array.from({ length: CARDS_PER_PILE * PILES.length }, (_, i) => i % PILES.length)
+export default function Deal() {
+  const sectionRef  = useRef(null)
+  const fanRef      = useRef(null)    // rotateX target for the whole fan
+  const cardRefs    = useRef([])      // individual card elements (hover pop)
+  const brandRef    = useRef(null)
+  const hintRef     = useRef(null)
+  const [hovered, setHovered] = useState(null)
 
-export default function Deal({ shouldDeal }) {
-  const sectionRef = useRef(null)
-  const tableRef   = useRef(null)
-  const deckRef    = useRef(null)
-  const pileRefs   = useRef([])
-  const cardRefs   = useRef([])
-  const copyRef    = useRef(null)
-  const pickRef    = useRef(null)
+  useEffect(() => {
+    const fan   = fanRef.current
+    const cards = cardRefs.current.filter(Boolean)
 
-  const [phase,    setPhase]    = useState('idle')
-  const [hovered,  setHovered]  = useState(null)
-  const [deckDone, setDeckDone] = useState(false)
-
-  // ── Deal animation ──
-  const runDeal = useCallback(() => {
-    setPhase('dealing')
-    const deckEl = deckRef.current
-    if (!deckEl) return
-
-    const deckRect  = deckEl.getBoundingClientRect()
-    const pileCount = [0, 0, 0, 0]
-
-    const tl = gsap.timeline({
-      onComplete: () => {
-        const allCards = cardRefs.current.flat().filter(Boolean)
-        gsap.set(allCards, { clearProps: 'x,y,rotation,transform' })
-        setPhase('ready')
-        setDeckDone(true)
-        gsap.to([copyRef.current, pickRef.current], {
-          opacity: 1, y: 0, duration: 0.7, stagger: 0.2, ease: 'power2.out',
-        })
-      },
+    // ── Initial 3-D state ──────────────────────────────────────────────────
+    // Fan lies ~52° from vertical ("cards on a table").
+    // transform-origin near the bottom so top edge lifts when rotateX → 0.
+    gsap.set(fan, {
+      rotateX:          52,
+      transformOrigin:  '50% 88%',
+      transformPerspective: 0,   // perspective is on the CSS wrap, not here
     })
 
-    tl.to(tableRef.current, { opacity: 1, duration: 0.4, ease: 'power2.out' })
-
-    DEAL_ORDER.forEach((pileIdx, dealIdx) => {
-      const cardSlot = pileCount[pileIdx]
-      pileCount[pileIdx]++
-      const cardEl = cardRefs.current[pileIdx]?.[cardSlot]
-      if (!cardEl) return
-      const cardRect = cardEl.getBoundingClientRect()
-      const fromX = deckRect.left + deckRect.width  / 2 - (cardRect.left + cardRect.width  / 2)
-      const fromY = deckRect.top  + deckRect.height / 2 - (cardRect.top  + cardRect.height / 2)
-      tl.fromTo(
-        cardEl,
-        { x: fromX, y: fromY, opacity: 1, rotation: gsap.utils.random(-10, 10) },
-        { x: 0,     y: 0,     opacity: 1, rotation: 0, duration: 0.35, ease: 'power3.out' },
-        0.15 + dealIdx * 0.1,
-      )
+    // Brand + hint: start hidden, animate in on mount
+    gsap.set([brandRef.current, hintRef.current], { opacity: 0, y: 22 })
+    gsap.to([brandRef.current, hintRef.current], {
+      opacity: 1, y: 0,
+      duration: 1.1,
+      stagger:  0.18,
+      ease:     'power3.out',
+      delay:    0.4,       // let Loader fade finish first
     })
+
+    // Cards: fade in with a brief stagger
+    gsap.set(cards, { opacity: 0 })
+    gsap.to(cards, {
+      opacity:  1,
+      stagger:  0.07,
+      duration: 0.7,
+      ease:     'power2.out',
+      delay:    0.5,
+    })
+
+    // ── Scroll: lift fan from table angle → fully upright ─────────────────
+    //
+    //  Section = 250 vh → 150 vh scroll travel (top-top → bottom-bottom).
+    //  tl plays 0→1 across that travel.
+    //
+    //  0 → 80%  rotateX 52 → 0   (cards rise)
+    //  0 → 35%  hint text fades out (no longer needed once scrolling)
+    //
+    const tl = gsap.timeline({ paused: true })
+
+    tl.to(fan, {
+      rotateX: 0,
+      ease:    'power1.inOut',
+      duration: 0.80,
+    }, 0)
+
+    tl.fromTo(hintRef.current,
+      { opacity: 1 },
+      { opacity: 0, ease: 'none', duration: 0.35, immediateRender: false },
+      0
+    )
+
+    // Subtle spread: cards drift apart a little as they rise,
+    // reinforcing the "hand being revealed" feel.
+    // We target individual card slots via their CSS var offset ±translateX.
+    const SPREAD_X = [-52, -26, 0, 26, 52]  // px
+    cards.forEach((card, i) => {
+      tl.to(card, {
+        x:        SPREAD_X[i],
+        ease:     'power1.inOut',
+        duration: 0.80,
+      }, 0)
+    })
+
+    const st = ScrollTrigger.create({
+      trigger:   sectionRef.current,
+      start:     'top top',
+      end:       'bottom bottom',
+      scrub:     1.2,
+      animation: tl,
+    })
+
+    return () => { st.kill(); tl.kill() }
   }, [])
-
-  // ── Initial state + scroll-back restoration ──
-  useEffect(() => {
-    gsap.set(tableRef.current, { opacity: 0 })
-    gsap.set(copyRef.current,  { opacity: 0, y: 24 })
-    gsap.set(pickRef.current,  { opacity: 0, y: 20 })
-    const allCards = cardRefs.current.flat().filter(Boolean)
-    gsap.set(allCards, { opacity: 0 })
-
-    // When user scrolls back into Deal from Suits — restore full ready state
-    const restoreTrigger = ScrollTrigger.create({
-      trigger: sectionRef.current,
-      start: 'top bottom',
-      onEnterBack: () => {
-        if (phase === 'ready' || phase === 'selected') {
-          pileRefs.current.forEach(p => {
-            if (p) gsap.set(p, { clearProps: 'x,y,scale,opacity' })
-          })
-          // Restore copy + pick text (set explicitly — CSS defaults to opacity:0)
-          gsap.set([copyRef.current, pickRef.current], { opacity: 1, y: 0 })
-          setPhase('ready')
-          setHovered(null)
-        }
-      },
-    })
-
-    return () => {
-      restoreTrigger.kill()
-      ScrollTrigger.getAll().forEach(t => t.kill())
-    }
-  }, []) // eslint-disable-line
-
-  useEffect(() => {
-    if (shouldDeal && phase === 'idle') runDeal()
-  }, [shouldDeal, phase, runDeal])
-
-  // ── Pile selection: 5-card spread → Scene 2 ──
-  const handlePick = (pileIdx) => {
-    if (phase !== 'ready') return
-    setPhase('selected')
-    setHovered(null)
-
-    const sectionEl = sectionRef.current
-    if (!sectionEl) return
-
-    const vw = window.innerWidth
-    const vh = window.innerHeight
-
-    // Lock scroll during transition
-    document.body.style.overflow = 'hidden'
-
-    // Fade non-selected piles & UI
-    pileRefs.current.forEach((p, i) => {
-      if (i !== pileIdx && p) gsap.to(p, { opacity: 0, scale: 0.85, duration: 0.35, ease: 'power2.in' })
-    })
-    gsap.to([copyRef.current, pickRef.current], { opacity: 0, duration: 0.25 })
-
-    // Create fixed overlay container
-    const overlayEl = document.createElement('div')
-    overlayEl.style.cssText = 'position:fixed;left:0;top:0;width:100%;height:100%;z-index:9998;pointer-events:none;overflow:hidden;'
-    document.body.appendChild(overlayEl)
-
-    // Clone 5 cards as overlay divs, positioned exactly over each card
-    const pickedCards = (cardRefs.current[pileIdx] || []).filter(Boolean)
-    const panelW = vw / 5
-
-    const overlayDivs = pickedCards.map((card) => {
-      const rect = card.getBoundingClientRect()
-      const div = document.createElement('div')
-      div.style.cssText = `
-        position:absolute; left:0; top:0;
-        width:${rect.width}px; height:${rect.height}px;
-        background:linear-gradient(150deg,#200505 0%,#0e0e0e 100%);
-        border:1px solid rgba(204,0,0,0.3);
-        border-radius:12px;
-      `
-      overlayEl.appendChild(div)
-      // Position at card's current screen location
-      gsap.set(div, { x: rect.left, y: rect.top, transformOrigin: 'top left' })
-      return { div, rect }
-    })
-
-    const tl = gsap.timeline({
-      onComplete: () => {
-        // Instant scroll to Suits
-        const suitsEl = document.getElementById('suits')
-        if (suitsEl) window.scrollTo({ top: suitsEl.offsetTop, behavior: 'instant' })
-
-        // Fade out overlays after flip starts (0.4s delay)
-        gsap.to(overlayEl, {
-          opacity: 0, duration: 0.7, delay: 0.4,
-          onComplete: () => { if (overlayEl.parentNode) overlayEl.remove() },
-        })
-
-        // Restore Deal for scroll-back
-        gsap.set(sectionEl, { opacity: 1 })
-        pileRefs.current.forEach(p => { if (p) gsap.set(p, { clearProps: 'x,y,scale,opacity' }) })
-        gsap.set([copyRef.current, pickRef.current], { opacity: 1, y: 0 })
-        setPhase('ready')
-        document.body.style.overflow = ''
-      },
-    })
-
-    // Fade out deal section
-    tl.to(sectionEl, { opacity: 0, duration: 0.55, ease: 'power2.inOut' }, 0.25)
-
-    // Spread each card overlay into its column (left → right stagger)
-    overlayDivs.forEach(({ div, rect }, i) => {
-      const scaleX = panelW / rect.width
-      const scaleY = vh / rect.height
-      tl.to(div, {
-        x: i * panelW,
-        y: 0,
-        scaleX,
-        scaleY,
-        borderRadius: 0,
-        duration: 0.9,
-        ease: 'power3.inOut',
-      }, i * 0.08)
-    })
-  }
 
   return (
     <section ref={sectionRef} id="deal" className="deal">
+      <div className="deal__sticky">
 
-      <div ref={tableRef} className="deal__table">
-        <div className="deal__felt" />
-        <div className="deal__center">
-          <img src={logo} alt="ARA Studio" className="deal__logo" />
+        {/* ── Spotlight ── */}
+        <div className="deal__spotlight" aria-hidden="true" />
+
+        {/* ── Brand ── */}
+        <div ref={brandRef} className="deal__brand">
+          <img src={logo} alt="All Round Ace Studio" className="deal__logo" />
+          <p className="deal__studio-name">ALL ROUND ACE STUDIO</p>
         </div>
 
-        <div ref={deckRef} className={`deal__deck${deckDone ? ' is-done' : ''}`}>
-          {[0,1,2,3,4].map(i => (
-            <div key={i} className="deal__deck-card" style={{ '--i': i }} />
-          ))}
-        </div>
-
-        {PILES.map((pile, pIdx) => (
-          <div
-            key={pile.id}
-            ref={el => (pileRefs.current[pIdx] = el)}
-            className={`deal__pile deal__pile--${pile.id}${hovered === pIdx ? ' is-hovered' : ''}${phase === 'ready' ? ' is-active' : ''}`}
-            onMouseEnter={() => phase === 'ready' && setHovered(pIdx)}
-            onMouseLeave={() => setHovered(null)}
-            onClick={() => handlePick(pIdx)}
-          >
-            <div className="deal__cards">
-              {Array.from({ length: CARDS_PER_PILE }, (_, cIdx) => (
+        {/* ── 5-card fan ── */}
+        {/* perspective is set on the wrap (CSS), rotateX is on the fan (GSAP) */}
+        <div className="deal__fan-wrap">
+          <div ref={fanRef} className="deal__fan">
+            {CARDS.map((card, i) => (
+              <div
+                key={i}
+                className={`deal__slot deal__slot--${i + 1}`}
+              >
                 <div
-                  key={cIdx}
-                  ref={el => {
-                    if (!cardRefs.current[pIdx]) cardRefs.current[pIdx] = []
-                    cardRefs.current[pIdx][cIdx] = el
-                  }}
-                  className={`deal__card${cIdx === CARDS_PER_PILE - 1 ? ' deal__card--top' : ''}`}
-                  style={{ '--c': cIdx }}
+                  ref={el => (cardRefs.current[i] = el)}
+                  className={[
+                    'deal__card',
+                    hovered === i                     ? 'is-hovered' : '',
+                    hovered !== null && hovered !== i ? 'is-dim'     : '',
+                  ].filter(Boolean).join(' ')}
+                  onMouseEnter={() => setHovered(i)}
+                  onMouseLeave={() => setHovered(null)}
                 >
-                  {cIdx === CARDS_PER_PILE - 1 && (
-                    <span className={`deal__suit${pile.isRed ? ' is-red' : ''}`}>{pile.suit}</span>
-                  )}
+                  {/* Back face only — cards are unrevealed until you scroll */}
+                  <div className="deal__card-back">
+                    <div className="deal__back-pattern" />
+                    <span className={`deal__back-suit${card.isRed ? ' is-red' : ''}`}>
+                      {card.suit}
+                    </span>
+                    {/* Subtle corner pip */}
+                    <span className={`deal__back-pip${card.isRed ? ' is-red' : ''}`}>
+                      {card.suit}
+                    </span>
+                  </div>
                 </div>
-              ))}
-            </div>
-            <p className="deal__slogan">
-              {pile.slogan.split('\n').map((line, i) => <span key={i}>{line}</span>)}
-            </p>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </div>
 
-      <div className="deal__copy" ref={copyRef}>
-        <p className="deal__copy-tag">ALL ROUND ACE STUDIO</p>
-        <p className="deal__copy-sub">Every project is a game.<br />We don't play safe.</p>
-      </div>
+        {/* ── Scroll hint ── */}
+        <p ref={hintRef} className="deal__hint">
+          <span className="deal__hint-line">scroll to play your hand</span>
+          <span className="deal__hint-arrow">↓</span>
+        </p>
 
-      <div className="deal__pick-wrap" ref={pickRef}>
-        <h1 className="deal__pick">PICK<br /><em>ONE</em></h1>
       </div>
-
     </section>
   )
 }

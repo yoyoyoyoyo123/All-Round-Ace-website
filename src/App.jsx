@@ -8,21 +8,14 @@ import RoyalFlush from './components/RoyalFlush/RoyalFlush'
 import AllIn      from './components/AllIn/AllIn'
 
 export default function App() {
-  const [loaded,      setLoaded]      = useState(false)
-  const [dealStarted, setDealStarted] = useState(false)
-
-  const handleLoaderComplete = () => {
-    setLoaded(true)
-    // Wait for main opacity transition (0.6s) + buffer, then trigger deal animation
-    setTimeout(() => setDealStarted(true), 900)
-  }
+  const [loaded, setLoaded] = useState(false)
 
   return (
     <>
-      <Loader onComplete={handleLoaderComplete} />
+      <Loader onComplete={() => setLoaded(true)} />
       {loaded && <Header />}
       <main style={{ opacity: loaded ? 1 : 0, transition: 'opacity 0.6s ease' }}>
-        <Deal shouldDeal={dealStarted} />
+        <Deal />
         <Suits />
         <Spread />
         <RoyalFlush />

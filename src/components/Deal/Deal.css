@@ -1,249 +1,238 @@
 /* =============================================
-   Scene 1: The DEAL
+   Scene 1: THE DEAL  (redesigned)
+   Five face-down cards in a fan, lying on a
+   "table".  Scroll rotates them upright and
+   spreads them into Scene 2 (The Suits).
    ============================================= */
 
+/* ── Section: 250 vh → 150 vh scroll travel ── */
 .deal {
   position: relative;
   width: 100vw;
-  height: 100vh;
-  overflow: hidden;
+  height: 250vh;
   background: var(--color-black);
 }
 
-/* ── Full-screen table ── */
-.deal__table {
+/* ── Sticky viewport ── */
+.deal__sticky {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(2rem, 4vh, 3.5rem);
+}
+
+/* ═══════════════════════════════════════
+   SPOTLIGHT
+   ═══════════════════════════════════════ */
+
+.deal__spotlight {
   position: absolute;
   inset: 0;
-  will-change: opacity;
-}
-
-.deal__felt {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: 110vw;
-  height: 110vw;
-  border-radius: 50%;
-  background: radial-gradient(
-    ellipse 65% 55% at 50% 48%,
-    #200505 0%,
-    #150202 35%,
-    #0c0c0c 65%,
-    #060606 100%
-  );
-  border: 2px solid rgba(204, 0, 0, 0.2);
-  box-shadow:
-    inset 0 0 140px rgba(0,0,0,0.75),
-    0 0 0 1px rgba(255,255,255,0.025);
-}
-
-/* ── Center logo ── */
-.deal__center {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 2;
   pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(
+      ellipse 52% 44% at 50% 68%,
+      rgba(201, 168, 76, 0.07) 0%,
+      transparent 65%
+    ),
+    radial-gradient(
+      ellipse 80% 70% at 50% 60%,
+      transparent 40%,
+      rgba(0, 0, 0, 0.55) 100%
+    );
+}
+
+/* ═══════════════════════════════════════
+   BRAND / LOGO
+   ═══════════════════════════════════════ */
+
+.deal__brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+  position: relative;
+  z-index: 2;
 }
 
 .deal__logo {
-  width: clamp(200px, 24vw, 360px);
+  height: clamp(38px, 4.5vh, 64px);
+  width: auto;
   filter: brightness(0) invert(1);
-  opacity: 0.1;
+  opacity: 0.88;
 }
 
-/* ── Source deck ── */
-.deal__deck {
-  position: absolute;
-  bottom: 6vh;
-  right: 18vw;
-  width: clamp(68px, 7vw, 95px);
-  height: clamp(98px, 10.5vw, 138px);
-  z-index: 3;
-  transition: opacity 0.6s ease;
-}
-.deal__deck.is-done { opacity: 0; pointer-events: none; }
-
-.deal__deck-card {
-  position: absolute;
-  inset: 0;
-  border-radius: var(--radius-card);
-  background: linear-gradient(145deg, #200505 0%, #0f0f0f 100%);
-  border: 1px solid rgba(204,0,0,0.3);
-  transform:
-    translateY(calc(var(--i) * -2.5px))
-    rotate(calc((var(--i) - 2) * 1.5deg));
+.deal__studio-name {
+  font-family: var(--font-heading);
+  font-size: clamp(0.52rem, 0.68vw, 0.64rem);
+  letter-spacing: 0.52em;
+  color: rgba(255, 255, 255, 0.22);
 }
 
-/* ── Four piles ── */
-.deal__pile {
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.2rem;
-  z-index: 4;
-  cursor: default;
-}
+/* ═══════════════════════════════════════
+   FAN — PERSPECTIVE WRAP + ROTATED GROUP
+   ═══════════════════════════════════════ */
 
-.deal__pile.is-active { cursor: pointer; }
-
-.deal__pile--top    { top: 8vh;    left: 50%;  transform: translateX(-50%); }
-.deal__pile--right  { top: 50%;    right: 6vw; transform: translateY(-50%); }
-.deal__pile--bottom { bottom: 14vh;left: 50%;  transform: translateX(-50%); }
-.deal__pile--left   { top: 50%;    left: 6vw;  transform: translateY(-50%); }
-
-/* ── Card stack ── */
-.deal__cards {
+.deal__fan-wrap {
+  perspective:        1100px;
+  perspective-origin: 50% 55%;
   position: relative;
-  width: clamp(72px, 8vw, 106px);
-  height: clamp(104px, 11.5vw, 152px);
+  z-index: 2;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: clamp(1rem, 3vh, 2.5rem);
 }
 
-/* ── Individual cards ── */
+/* rotateX target — GSAP animates 52deg → 0deg on scroll */
+.deal__fan {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  transform-style: preserve-3d;
+}
+
+/* ── Card slots — CSS fan spread ── */
+.deal__slot {
+  position: relative;
+  width:  clamp(130px, 13vw, 185px);
+  height: clamp(195px, 19.5vw, 278px);
+  flex-shrink: 0;
+  margin: 0 clamp(-22px, -2.2vw, -14px);
+  transform-style: preserve-3d;
+}
+
+.deal__slot--1 { transform: rotate(-20deg) translateY(32px); z-index: 1; }
+.deal__slot--2 { transform: rotate(-10deg) translateY(14px); z-index: 2; }
+.deal__slot--3 { transform: rotate(  0deg) translateY(  0); z-index: 3; }
+.deal__slot--4 { transform: rotate( 10deg) translateY(14px); z-index: 2; }
+.deal__slot--5 { transform: rotate( 20deg) translateY(32px); z-index: 1; }
+
+/* ── Individual card — hover pop target ── */
 .deal__card {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  cursor: pointer;
+  transition:
+    transform 0.38s var(--ease-out),
+    opacity   0.22s ease;
+}
+
+/*
+ * translateZ pushes the card toward the viewer along the 3-D Z axis.
+ * Because the fan group has rotateX applied, Z points diagonally upward
+ * in screen space → card visually "lifts" off the table surface.
+ */
+.deal__card.is-hovered {
+  transform: translateZ(44px) translateY(-10px) scale(1.04);
+}
+
+.deal__card.is-dim {
+  opacity: 0.32;
+}
+
+/* ── Card back face ── */
+.deal__card-back {
   position: absolute;
   inset: 0;
   border-radius: var(--radius-card);
-  background: linear-gradient(150deg, #1e0404 0%, #0e0e0e 100%);
-  border: 1px solid rgba(204,0,0,0.22);
-  /* default stacked position */
-  transform:
-    translateY(calc(var(--c) * -2.5px))
-    rotate(calc((var(--c) - 2) * 0.8deg));
-  transition: transform 0.4s var(--ease-out), box-shadow 0.4s ease;
-}
-
-.deal__card::before {
-  content: '';
-  position: absolute;
-  inset: 6px;
-  border-radius: 8px;
-  border: 1px solid rgba(204,0,0,0.1);
-  background: repeating-linear-gradient(
-    45deg,
-    transparent,
-    transparent 7px,
-    rgba(204,0,0,0.035) 7px,
-    rgba(204,0,0,0.035) 8px
-  );
-}
-
-/* top face card */
-.deal__card--top {
-  background: linear-gradient(150deg, #1e0404 0%, #111 100%);
-  border-color: rgba(204,0,0,0.5);
+  background: linear-gradient(150deg, #040d1f 0%, #0b0b0b 100%);
+  border: 1px solid rgba(30, 60, 140, 0.40);
+  box-shadow:
+    0 16px 48px rgba(0, 0, 0, 0.90),
+    0  0   0 0.5px rgba(30, 60, 140, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.6);
-  transform: translateY(-8px);
 }
 
-/* ── Hover: fan spread (5 cards visible) ── */
-.deal__pile.is-hovered .deal__cards {
-  /* extra height to accommodate upward fan */
+.deal__back-pattern {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 9px,
+    rgba(30, 60, 140, 0.055) 9px,
+    rgba(30, 60, 140, 0.055) 10px
+  );
 }
 
-.deal__pile.is-hovered .deal__card:nth-child(1) {
-  transform: translateX(-38px) translateY(6px) rotate(-18deg);
-  box-shadow: -4px 8px 20px rgba(0,0,0,0.5);
-}
-.deal__pile.is-hovered .deal__card:nth-child(2) {
-  transform: translateX(-19px) translateY(-8px) rotate(-9deg);
-  box-shadow: -2px 8px 20px rgba(0,0,0,0.5);
-}
-.deal__pile.is-hovered .deal__card:nth-child(3) {
-  transform: translateX(0) translateY(-18px) rotate(0deg);
-  box-shadow: 0 10px 28px rgba(0,0,0,0.6);
-}
-.deal__pile.is-hovered .deal__card:nth-child(4) {
-  transform: translateX(19px) translateY(-8px) rotate(9deg);
-  box-shadow: 2px 8px 20px rgba(0,0,0,0.5);
-}
-.deal__pile.is-hovered .deal__card--top {
-  transform: translateX(38px) translateY(6px) rotate(18deg);
-  box-shadow: 4px 8px 28px rgba(0,0,0,0.6), 0 0 16px rgba(204,0,0,0.2);
-}
-
-.deal__suit {
-  font-size: clamp(1.8rem, 2.8vw, 2.6rem);
-  line-height: 1;
-  color: var(--color-white);
+.deal__back-suit {
+  position: relative;
+  font-size: clamp(3.5rem, 5.5vw, 7rem);
+  color: rgba(30, 60, 140, 0.30);
   user-select: none;
+  line-height: 1;
 }
-.deal__suit.is-red { color: var(--color-red); }
 
-/* ── Slogan ── */
-.deal__slogan {
+.deal__back-suit.is-red {
+  color: rgba(140, 30, 30, 0.30);
+}
+
+.deal__back-pip {
+  position: absolute;
+  top: 0.55em;
+  left: 0.55em;
+  font-size: clamp(0.65rem, 0.9vw, 1rem);
+  color: rgba(30, 60, 140, 0.45);
+  user-select: none;
+  line-height: 1;
+}
+
+.deal__back-pip.is-red {
+  color: rgba(140, 30, 30, 0.45);
+}
+
+.deal__card.is-hovered .deal__card-back {
+  border-color: rgba(201, 168, 76, 0.28);
+  box-shadow:
+    0 20px 56px rgba(0, 0, 0, 0.92),
+    0  0  28px rgba(201, 168, 76, 0.06),
+    0  0   0 0.5px rgba(201, 168, 76, 0.15);
+}
+
+/* ═══════════════════════════════════════
+   SCROLL HINT
+   ═══════════════════════════════════════ */
+
+.deal__hint {
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 0.3rem;
+  position: relative;
+  z-index: 2;
+  /* opacity driven to 0 by GSAP as user scrolls */
+}
+
+.deal__hint-line {
   font-family: var(--font-body);
   font-style: italic;
-  font-size: clamp(0.7rem, 1vw, 0.9rem);
-  line-height: 1.55;
-  text-align: center;
-  letter-spacing: 0.03em;
-  color: rgba(255,255,255,0);
-  transition: color 0.3s ease, transform 0.35s var(--ease-out);
-  transform: translateY(8px);
-  pointer-events: none;
-  white-space: nowrap;
-}
-.deal__pile.is-hovered .deal__slogan {
-  color: rgba(255,255,255,0.6);
-  transform: translateY(0);
+  font-size: clamp(0.68rem, 0.85vw, 0.80rem);
+  color: rgba(255, 255, 255, 0.18);
+  letter-spacing: 0.14em;
 }
 
-/* ── Mafia copy — bottom left ── */
-.deal__copy {
-  position: absolute;
-  bottom: 5vh;
-  left: 4vw;
-  z-index: 10;
-  opacity: 0;
+.deal__hint-arrow {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.12);
+  animation: hint-bob 2s ease-in-out infinite;
 }
 
-.deal__copy-tag {
-  font-family: var(--font-heading);
-  font-size: clamp(0.8rem, 1.1vw, 1rem);
-  letter-spacing: 0.32em;
-  color: var(--color-red);
-  margin-bottom: 0.6rem;
-}
-
-.deal__copy-sub {
-  font-family: var(--font-body);
-  font-style: italic;
-  font-size: clamp(1rem, 1.4vw, 1.25rem);
-  color: rgba(255,255,255,0.4);
-  letter-spacing: 0.03em;
-  line-height: 1.65;
-}
-
-/* ── PICK ONE — bottom right ── */
-.deal__pick-wrap {
-  position: absolute;
-  bottom: 3.5vh;
-  right: 5vw;
-  z-index: 10;
-  text-align: right;
-  opacity: 0;
-}
-
-.deal__pick {
-  font-family: var(--font-heading);
-  font-size: clamp(5rem, 10vw, 10rem);
-  line-height: 0.88;
-  color: var(--color-white);
-  letter-spacing: 0.03em;
-}
-
-.deal__pick em {
-  font-style: normal;
-  color: var(--color-red);
-  display: block;
+@keyframes hint-bob {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(5px); }
 }
