@@ -1,0 +1,7 @@
+{
+  "name": "ara-worktree-proxy",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "npm --prefix \"C:\\Users\\IAA USER\\Desktop\\ARAWebsite\\All-Round-Ace-website\" run dev"
+  }
+}
