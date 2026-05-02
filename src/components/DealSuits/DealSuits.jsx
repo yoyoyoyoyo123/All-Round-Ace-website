@@ -73,45 +73,52 @@ export default function DealSuits() {
       scaleX: 1, scaleY: 1,
       zIndex: 20,
     })
-    // Panels start at card-sized clip, invisible — clip expands in Phase 4
+    const watermark = panelsRef.current.querySelector('.ds__watermark')
+
+    // Panels: card-sized clip, invisible. Watermark hidden until scene 2 fully reveals.
     gsap.set(panelEls, { clipPath: clipClosed, opacity: 0 })
+    gsap.set(watermark, { opacity: 0 })
     gsap.set(panelsRef.current, { opacity: 1, pointerEvents: 'none' })
 
     // ── Master timeline ──────────────────────────────────────────────
     const tl = gsap.timeline({ paused: true })
 
-    // Phase 1 (0.00 → 0.12): pile floats up to vertical centre
-    tl.to(cards, { y: vh * 0.5, duration: 0.12, ease: 'power2.out' }, 0)
+    // Phase 1 (0.00 → 0.10): pile floats up to vertical centre
+    tl.to(cards, { y: vh * 0.5, duration: 0.10, ease: 'power2.out' }, 0)
 
-    // Phase 2 (0.10 → 0.38): fan out to column positions
+    // Phase 2 (0.08 → 0.36): fan out to column positions
     cards.forEach((card, i) => {
-      tl.to(card, { x: COL_CX[i], duration: 0.28, ease: 'power2.inOut' }, 0.10)
+      tl.to(card, { x: COL_CX[i], duration: 0.28, ease: 'power2.inOut' }, 0.08)
     })
 
-    // Phase 3a (0.40 → 0.52): card backs squish away
-    tl.to(cards, { scaleX: 0, duration: 0.12, ease: 'power2.in' }, 0.40)
+    // Phase 3a (0.36 → 0.50): card backs squish away — force2D avoids GPU blur at scaleX≈0
+    tl.to(cards, { scaleX: 0, duration: 0.14, ease: 'power2.in', force3D: false }, 0.36)
 
-    // Phase 3 midpoint (0.52): panels snap in (already clipped to card footprint)
-    tl.set(panelEls, { opacity: 1 }, 0.52)
+    // Phase 3 midpoint (0.50): panels appear at card footprint — no gap before expansion
+    tl.set(panelEls, { opacity: 1 }, 0.50)
 
-    // Phase 3b (0.52 → 0.58): card backs fade out
-    tl.to(cards, { opacity: 0, duration: 0.06, ease: 'none' }, 0.52)
+    // Phase 3b (0.50 → 0.56): card backs fade out simultaneously
+    tl.to(cards, { opacity: 0, duration: 0.06, ease: 'none', force3D: false }, 0.50)
 
-    // Phase 4 (0.67 → 1.00): each panel's clip-path expands to full size
+    // Phase 4 (0.50 → 0.95): clip-path bursts open immediately — power3.out starts at full speed
     panelEls.forEach(panel => {
       tl.fromTo(panel,
         { clipPath: clipClosed },
-        { clipPath: clipOpen, duration: 0.33, ease: 'power2.inOut' },
-        0.67
+        { clipPath: clipOpen, duration: 0.45, ease: 'power3.out' },
+        0.50
       )
     })
 
+    // Watermark fades in near end of reveal
+    tl.to(watermark, { opacity: 1, duration: 0.12, ease: 'power1.in' }, 0.88)
+
     // ── ScrollTrigger ────────────────────────────────────────────────
+    // end at +=600% so animation completes at 600vh, remaining 300vh = linger on Scene 2
     const st = ScrollTrigger.create({
       trigger:   sectionRef.current,
       start:     'top top',
-      end:       'bottom bottom',
-      scrub:     1.4,
+      end:       '+=600%',
+      scrub:     1.0,
       animation: tl,
       onUpdate(self) {
         const nowExp = self.progress >= 0.97

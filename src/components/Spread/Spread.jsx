@@ -1,193 +1,248 @@
-import { useRef, useEffect, useState, useCallback } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import './Spread.css'
 
 gsap.registerPlugin(ScrollTrigger)
 
-const PROJECTS = [
-  {
-    id: '01', suit: '♠', isRed: false,
-    title: 'Resonance Wall',
-    cat: 'Interactive Installation',
-    desc: 'A sound-reactive installation that transforms ambient noise into visual patterns across a 4m LED matrix.',
-    tags: ['Arduino', 'P5.js', 'LED Matrix'],
-  },
-  {
-    id: '02', suit: '♥', isRed: true,
-    title: 'Echo Chamber',
-    cat: 'Software Development',
-    desc: 'Real-time collaborative audio synthesis platform with WebRTC-powered session sharing.',
-    tags: ['WebRTC', 'Web Audio API', 'React'],
-  },
-  {
-    id: '03', suit: '♦', isRed: true,
-    title: 'Liminal',
-    cat: 'Game Development',
-    desc: 'A narrative puzzle game exploring the boundary between memory and imagination.',
-    tags: ['Unity', 'C#', 'Shader Graph'],
-  },
-  {
-    id: '04', suit: '♣', isRed: false,
-    title: 'Void Garden',
-    cat: 'Art Installation',
-    desc: 'Generative light sculptures that grow and decay in response to live environmental data.',
-    tags: ['TouchDesigner', 'OSC', 'LED'],
-  },
-  {
-    id: '05', suit: '♠', isRed: false,
-    title: 'Phantom Grid',
-    cat: 'Interactive Installation',
-    desc: 'Floor-projection system that reacts to footsteps with procedural visual feedback.',
-    tags: ['OpenCV', 'Processing', 'Projection'],
-  },
-  { id: '06', suit: '♥', isRed: true,  coming: true },
-  { id: '07', suit: '♦', isRed: true,  coming: true },
-  { id: '08', suit: '♣', isRed: false, coming: true },
-  { id: '09', suit: '♠', isRed: false, coming: true },
-  { id: '10', suit: '♥', isRed: true,  coming: true },
+const WORKS = [
+  { id: 0, title: 'Resonance Wall',  medium: 'Interactive Installation', year: '2024', rank: 'A',  suit: '♠', isRed: false },
+  { id: 1, title: 'Echo Chamber',    medium: 'Sound · Light',            year: '2023', rank: 'K',  suit: '♥', isRed: true  },
+  { id: 2, title: 'Liminal',         medium: 'Video Installation',       year: '2023', rank: 'Q',  suit: '♦', isRed: true  },
+  { id: 3, title: 'Void Garden',     medium: 'Generative Art',           year: '2022', rank: 'J',  suit: '♣', isRed: false },
+  { id: 4, title: 'Phantom Grid',    medium: 'Mixed Reality',            year: '2024', rank: '10', suit: '♠', isRed: false },
+  { id: 5, title: 'Drift',           medium: 'Performance · Tech',       year: '2022', rank: '9',  suit: '♥', isRed: true  },
+  { id: 6, title: 'Tessera',         medium: 'Interactive Sculpture',    year: '2023', rank: '8',  suit: '♦', isRed: true  },
+  { id: 7, title: 'Signal / Noise',  medium: 'Web Experience',           year: '2024', rank: '7',  suit: '♣', isRed: false },
+  { id: 8, title: 'Membrane',        medium: 'Bioart · Sensors',         year: '2022', rank: '6',  suit: '♠', isRed: false },
+  { id: 9, title: 'Afterimage',      medium: 'Photography · Code',       year: '2023', rank: '5',  suit: '♥', isRed: true  },
 ]
 
-function getSpreadPositions(count) {
-  const vw = window.innerWidth
-  return Array.from({ length: count }, (_, i) => {
-    const t   = i / (count - 1)
-    const cx  = (t - 0.5) * vw * 0.84
-    const cy  = -Math.sin(t * Math.PI) * 28
-    const rot = (t - 0.5) * 18
-    return { x: cx, y: cy, rotation: rot }
-  })
+const N         = WORKS.length
+const CARD_W    = 165
+const CARD_H    = 248
+const CARD_STEP = CARD_W + 22          // 187px per slot
+const CENTER    = 4                    // index of focus card in initial spread
+const HALF_W    = (N * CARD_STEP) / 2 // wrap boundary
+
+// Scale by wrapped distance from focus
+const DIST_SCALE = [1.10, 0.95, 0.88, 0.82]
+function scaleFor(dist) {
+  return DIST_SCALE[Math.min(dist, DIST_SCALE.length - 1)]
 }
 
 export default function Spread() {
-  const sectionRef = useRef(null)
-  const cardRefs   = useRef([])
-  const spreadRef  = useRef(false)
-  const [hovered, setHovered] = useState(null)
+  const sectionRef     = useRef(null)
+  const stageRef       = useRef(null)
+  const cardRefs       = useRef([])
+  const spreadDoneRef  = useRef(false)
+  const carouselOffRef = useRef(0)
+  const focusIdxRef    = useRef(CENTER)
+  const [focusIdx, setFocusIdx] = useState(CENTER)
+  const [isDone, setIsDone]     = useState(false)
 
   useEffect(() => {
+    const vw = window.innerWidth
+    const vh = window.innerHeight
+
+    const PILE_X  = vw / 2 - CARD_W / 2
+    const PILE_Y  = vh * 0.68 - CARD_H / 2
+    const FINAL_Y = vh * 0.60 - CARD_H / 2
+
     const cards = cardRefs.current.filter(Boolean)
-    gsap.set(cards, { x: 0, y: 0, rotation: 0, opacity: 0, scale: 1 })
+    const stage = stageRef.current
 
-    ScrollTrigger.create({
-      trigger: sectionRef.current,
-      start: 'top 65%',
-      onEnter: () => {
-        if (spreadRef.current) return
-        spreadRef.current = true
-        const pos = getSpreadPositions(cards.length)
+    // ── Initial pile state ────────────────────────────────────────
+    gsap.set(cards, {
+      x: PILE_X, y: PILE_Y,
+      scale: 1,
+      zIndex: i => N - i,
+      force3D: true,
+    })
 
-        // Step 1 — pile appears
-        gsap.to(cards, { opacity: 1, duration: 0.4, stagger: 0.03, ease: 'power2.out' })
+    const finalX = i => vw / 2 - CARD_W / 2 + (i - CENTER) * CARD_STEP
 
-        // Step 2 — spread from pile
-        gsap.to(cards, {
-          x: (i) => pos[i].x,
-          y: (i) => pos[i].y,
-          rotation: (i) => pos[i].rotation,
-          delay: 0.3,
-          duration: 0.85,
-          stagger: 0.07,
-          ease: 'power3.out',
-        })
-      },
-      onLeaveBack: () => {
-        spreadRef.current = false
-        setHovered(null)
-        const cards2 = cardRefs.current.filter(Boolean)
-        gsap.to(cards2, {
-          x: 0, y: 0, rotation: 0, opacity: 0,
-          duration: 0.5,
-          stagger: { each: 0.05, from: 'end' },
-          ease: 'power2.in',
-        })
+    // ── Apply depth-of-field scales from a focus index ────────────
+    const applyScales = (fi, animate = true) => {
+      cards.forEach((card, i) => {
+        const wrapDist = Math.min(Math.abs(i - fi), N - Math.abs(i - fi))
+        const s = scaleFor(wrapDist)
+        if (animate) gsap.to(card,  { scale: s, duration: 0.35, ease: 'power2.out', overwrite: 'auto' })
+        else         gsap.set(card, { scale: s })
+      })
+    }
+
+    // ── Update card positions during carousel drag ────────────────
+    const updatePositions = () => {
+      const off = carouselOffRef.current
+      let closest = 0, closestDist = Infinity
+
+      cards.forEach((card, i) => {
+        let voff = (i - CENTER) * CARD_STEP + off
+        while (voff >= HALF_W)  voff -= N * CARD_STEP
+        while (voff < -HALF_W)  voff += N * CARD_STEP
+        gsap.set(card, { x: vw / 2 - CARD_W / 2 + voff, force3D: true })
+
+        if (Math.abs(voff) < closestDist) {
+          closestDist = Math.abs(voff)
+          closest = i
+        }
+      })
+
+      if (closest !== focusIdxRef.current) {
+        focusIdxRef.current = closest
+        setFocusIdx(closest)
+        applyScales(closest, true)
+      }
+    }
+
+    // ── Drag logic ────────────────────────────────────────────────
+    let isDragging = false
+    let lastX = 0, velX = 0, rafId = null
+
+    const onDown = e => {
+      if (!spreadDoneRef.current) return
+      isDragging = true
+      lastX = e.clientX
+      velX = 0
+      cancelAnimationFrame(rafId)
+      stage.setPointerCapture(e.pointerId)
+    }
+
+    const onMove = e => {
+      if (!isDragging) return
+      const dx = e.clientX - lastX
+      carouselOffRef.current += dx
+      velX = dx
+      lastX = e.clientX
+      updatePositions()
+    }
+
+    const onUp = () => {
+      if (!isDragging) return
+      isDragging = false
+      const tick = () => {
+        if (Math.abs(velX) < 0.3) return
+        carouselOffRef.current += velX
+        velX *= 0.94
+        updatePositions()
+        rafId = requestAnimationFrame(tick)
+      }
+      rafId = requestAnimationFrame(tick)
+    }
+
+    stage.addEventListener('pointerdown',   onDown)
+    stage.addEventListener('pointermove',   onMove)
+    stage.addEventListener('pointerup',     onUp)
+    stage.addEventListener('pointercancel', onUp)
+
+    // ── Spread timeline ───────────────────────────────────────────
+    const tl = gsap.timeline({ paused: true })
+
+    cards.forEach((card, i) => {
+      tl.to(card, {
+        x: finalX(i),
+        y: FINAL_Y,
+        duration: 0.80,
+        ease: 'power3.out',
+        force3D: true,
+      }, Math.abs(i - CENTER) * 0.025)
+    })
+
+    // ── ScrollTrigger ─────────────────────────────────────────────
+    const st = ScrollTrigger.create({
+      trigger:   sectionRef.current,
+      start:     'top top',
+      end:       '+=350%',
+      scrub:     1.0,
+      animation: tl,
+      onUpdate(self) {
+        const done = self.progress >= 0.98
+        if (done === spreadDoneRef.current) return
+
+        if (done) {
+          spreadDoneRef.current = true
+          setIsDone(true)
+          applyScales(CENTER, true)
+        } else {
+          spreadDoneRef.current = false
+          setIsDone(false)
+          carouselOffRef.current = 0
+          focusIdxRef.current = CENTER
+          setFocusIdx(CENTER)
+          gsap.to(cards, { scale: 1, duration: 0.3, overwrite: 'auto' })
+        }
       },
     })
 
-    return () => ScrollTrigger.getAll().forEach(t => t.kill())
+    return () => {
+      st.kill()
+      tl.kill()
+      cancelAnimationFrame(rafId)
+      stage.removeEventListener('pointerdown',   onDown)
+      stage.removeEventListener('pointermove',   onMove)
+      stage.removeEventListener('pointerup',     onUp)
+      stage.removeEventListener('pointercancel', onUp)
+    }
   }, [])
 
-  const handleEnter = useCallback((idx) => {
-    if (!spreadRef.current) return
-    setHovered(idx)
-    gsap.to(cardRefs.current[idx], { y: '-=32', scale: 1.14, zIndex: 50, duration: 0.3, ease: 'power2.out' })
-    cardRefs.current.forEach((c, i) => { if (i !== idx && c) gsap.to(c, { opacity: 0.28, duration: 0.22 }) })
-  }, [])
-
-  const handleLeave = useCallback((idx) => {
-    setHovered(null)
-    const pos = getSpreadPositions(cardRefs.current.filter(Boolean).length)
-    gsap.to(cardRefs.current[idx], { y: pos[idx]?.y ?? 0, scale: 1, zIndex: idx + 1, duration: 0.3, ease: 'power2.out' })
-    cardRefs.current.forEach(c => { if (c) gsap.to(c, { opacity: 1, duration: 0.22 }) })
-  }, [])
+  const work = WORKS[focusIdx]
 
   return (
-    <section ref={sectionRef} id="spread" className="spread">
+    <section ref={sectionRef} id="spread" className="sp">
+      <div className="sp__sticky">
 
-      <div className="spread__header">
-        <p className="spread__scene-label">SCENE III</p>
-        <h2 className="spread__title">THE SPREAD</h2>
-        <p className="spread__tagline">All cards on the table.</p>
-      </div>
+        {/* Watermark */}
+        <div className="sp__watermark">
+          <p className="sp__wm-scene">SCENE III</p>
+          <h2 className="sp__wm-title">THE SPREAD</h2>
+        </div>
 
-      <div className="spread__stage">
-        {PROJECTS.map((proj, idx) => (
-          <div
-            key={proj.id}
-            ref={el => (cardRefs.current[idx] = el)}
-            className={[
-              'spread__card',
-              proj.isRed  ? 'is-red'    : '',
-              proj.coming ? 'is-coming' : '',
-              hovered === idx ? 'is-hovered' : '',
-            ].filter(Boolean).join(' ')}
-            style={{ zIndex: idx + 1 }}
-            onMouseEnter={() => handleEnter(idx)}
-            onMouseLeave={() => handleLeave(idx)}
-          >
-            {/* Card back (always visible behind) */}
-            <div className="spread__card-back">
-              <div className="spread__back-pattern" />
-            </div>
-
-            {/* Card face */}
-            <div className="spread__card-face">
-
-              <div className="spread__corner spread__corner--tl">
-                <span className="spread__rank">{proj.id}</span>
-                <span className="spread__suit-sm">{proj.suit}</span>
-              </div>
-
-              <div className="spread__suit-lg">{proj.coming ? '?' : proj.suit}</div>
-
-              {!proj.coming ? (
-                <div className="spread__content">
-                  <p className="spread__content-cat">{proj.cat}</p>
-                  <h3 className="spread__content-title">{proj.title}</h3>
-                  <p className="spread__content-desc">{proj.desc}</p>
-                  <div className="spread__tags">
-                    {proj.tags.map(t => <span key={t} className="spread__tag">{t}</span>)}
-                  </div>
-                  <span className="spread__cta">VIEW PROJECT →</span>
-                </div>
-              ) : (
-                <div className="spread__content spread__content--coming">
-                  <p className="spread__coming-text">COMING<br />SOON</p>
-                </div>
-              )}
-
-              <div className="spread__corner spread__corner--br">
-                <span className="spread__rank">{proj.id}</span>
-                <span className="spread__suit-sm">{proj.suit}</span>
-              </div>
-
-            </div>
+        {/* Info bar */}
+        <div className="sp__info">
+          <div key={focusIdx} className="sp__info-content">
+            <p className="sp__info-year">{work.year}</p>
+            <h2 className="sp__info-title">{work.title}</h2>
+            <p className="sp__info-medium">{work.medium}</p>
           </div>
-        ))}
+        </div>
+
+        {/* Card stage */}
+        <div
+          ref={stageRef}
+          className="sp__stage"
+          style={{ cursor: isDone ? 'grab' : 'default' }}
+        >
+          {WORKS.map((w, i) => (
+            <div
+              key={w.id}
+              ref={el => (cardRefs.current[i] = el)}
+              className={`sp__card${w.isRed ? ' is-red' : ''}${focusIdx === i ? ' is-focus' : ''}`}
+            >
+              <div className="sp__card-back">
+                <div className="sp__card-back-pattern" />
+                <span className={`sp__card-back-suit${w.isRed ? ' is-red' : ''}`}>
+                  {w.suit}
+                </span>
+              </div>
+              <div className="sp__card-corner sp__card-corner--tl">
+                <span className="sp__card-rank">{w.rank}</span>
+                <span className="sp__card-suit-sm">{w.suit}</span>
+              </div>
+              <div className="sp__card-corner sp__card-corner--br">
+                <span className="sp__card-rank">{w.rank}</span>
+                <span className="sp__card-suit-sm">{w.suit}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Drag hint */}
+        <p className="sp__hint" style={{ opacity: isDone ? 1 : 0 }}>
+          ← &nbsp;DRAG TO EXPLORE&nbsp; →
+        </p>
+
       </div>
-
-      <p className="spread__hint">Hover a card to reveal the project</p>
-
     </section>
   )
 }
