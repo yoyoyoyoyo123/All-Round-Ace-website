@@ -96,21 +96,45 @@ export default function Spread() {
       }
     }
 
+    // ── Animate carousel to a specific card index ────────────────
+    let clickTween = null
+
+    const animateToCard = targetIdx => {
+      // Visual offset of targetIdx at current carousel state
+      let voff = (targetIdx - CENTER) * CARD_STEP + carouselOffRef.current
+      // Normalise to shortest path: wrap into (-HALF_W, HALF_W]
+      while (voff >  HALF_W) voff -= N * CARD_STEP
+      while (voff < -HALF_W) voff += N * CARD_STEP
+      // Target carousel offset that brings voff to 0
+      const targetOff = carouselOffRef.current - voff
+      if (clickTween) clickTween.kill()
+      clickTween = gsap.to(carouselOffRef, {
+        current:  targetOff,
+        duration: 0.55,
+        ease:     'power3.out',
+        onUpdate: updatePositions,
+      })
+    }
+
     // ── Drag logic ────────────────────────────────────────────────
     let isDragging = false
-    let lastX = 0, velX = 0, rafId = null
+    let didDrag    = false
+    let startX = 0, lastX = 0, velX = 0, rafId = null
 
     const onDown = e => {
       if (!spreadDoneRef.current) return
       isDragging = true
-      lastX = e.clientX
+      didDrag    = false
+      startX = lastX = e.clientX
       velX = 0
       cancelAnimationFrame(rafId)
+      if (clickTween) clickTween.kill()
       stage.setPointerCapture(e.pointerId)
     }
 
     const onMove = e => {
       if (!isDragging) return
+      if (Math.abs(e.clientX - startX) > 6) didDrag = true
       const dx = e.clientX - lastX
       carouselOffRef.current += dx
       velX = dx
@@ -118,9 +142,24 @@ export default function Spread() {
       updatePositions()
     }
 
-    const onUp = () => {
+    const onUp = e => {
       if (!isDragging) return
       isDragging = false
+
+      if (!didDrag) {
+        // Pure click — use elementFromPoint because setPointerCapture makes e.target always the stage
+        const el = document.elementFromPoint(e.clientX, e.clientY)
+        const cardEl = el?.closest('.sp__card')
+        if (cardEl) {
+          const idx = cardRefs.current.findIndex(r => r === cardEl)
+          if (idx !== -1 && idx !== focusIdxRef.current) {
+            animateToCard(idx)
+          }
+        }
+        return
+      }
+
+      // Momentum scroll
       const tick = () => {
         if (Math.abs(velX) < 0.3) return
         carouselOffRef.current += velX

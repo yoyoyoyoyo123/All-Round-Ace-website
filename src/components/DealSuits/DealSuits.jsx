@@ -2,6 +2,11 @@ import { useRef, useEffect, useState, useCallback } from 'react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import './DealSuits.css'
+import BgImg    from '../../assets/LandingPage/Bg.png'
+import TableImg from '../../assets/LandingPage/Table.png'
+import MdImg    from '../../assets/LandingPage/MdPeople.png'
+import LImg     from '../../assets/LandingPage/LPeople.png'
+import RImg     from '../../assets/LandingPage/RPeople.png'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -46,6 +51,7 @@ export default function DealSuits() {
   const cardRefs    = useRef([])    // card back visuals
   const panelElRefs = useRef([])   // individual ds__panel elements (for clip-path)
   const panelsRef   = useRef(null) // ds__panels container
+  const landingRef  = useRef(null) // landing image layer
   const expandedRef = useRef(false)
   const [hovered, setHovered] = useState(null)
 
@@ -109,6 +115,9 @@ export default function DealSuits() {
       )
     })
 
+    // Landing layer fades out as panels start expanding
+    tl.to(landingRef.current, { opacity: 0, duration: 0.18, ease: 'power1.in' }, 0.47)
+
     // Watermark fades in near end of reveal
     tl.to(watermark, { opacity: 1, duration: 0.12, ease: 'power1.in' }, 0.88)
 
@@ -130,7 +139,44 @@ export default function DealSuits() {
       },
     })
 
-    return () => { st.kill(); tl.kill() }
+    // ── Mouse-move parallax ──────────────────────────────────────────
+    const lnd = landingRef.current
+    const LL = {
+      bg:     lnd.querySelector('.ds__landing-bg'),
+      table:  lnd.querySelector('.ds__landing-table'),
+      left:   lnd.querySelector('.ds__landing-left'),
+      right:  lnd.querySelector('.ds__landing-right'),
+      center: lnd.querySelector('.ds__landing-center'),
+    }
+    // depth = max horizontal shift in px per layer (bg moves least → most depth)
+    const DEPTH = { bg: 10, table: 20, left: 38, right: 38, center: 30 }
+
+    const onMouseMove = e => {
+      const dx = e.clientX / vw - 0.5  // -0.5 … 0.5
+      const dy = e.clientY / vh - 0.5
+      Object.entries(LL).forEach(([k, el]) => {
+        if (!el) return
+        const d = DEPTH[k]
+        gsap.to(el, { x: dx * d, y: dy * d * 0.55, duration: 1.1, ease: 'power2.out', overwrite: 'auto' })
+      })
+    }
+    const onMouseLeave = () => {
+      Object.values(LL).forEach(el => {
+        if (!el) return
+        gsap.to(el, { x: 0, y: 0, duration: 1.6, ease: 'power3.out', overwrite: 'auto' })
+      })
+    }
+    // Slightly scale bg so movement never exposes edges
+    gsap.set(LL.bg, { scale: 1.04, transformOrigin: '50% 50%' })
+
+    window.addEventListener('mousemove', onMouseMove)
+    window.addEventListener('mouseleave', onMouseLeave)
+
+    return () => {
+      st.kill(); tl.kill()
+      window.removeEventListener('mousemove', onMouseMove)
+      window.removeEventListener('mouseleave', onMouseLeave)
+    }
   }, [])
 
   const handleEnter = useCallback((i) => {
@@ -141,6 +187,15 @@ export default function DealSuits() {
   return (
     <section ref={sectionRef} id="deal" className="ds">
       <div className="ds__sticky">
+
+        {/* ── Layer 0: Landing images — visible during Scene 1 ── */}
+        <div ref={landingRef} className="ds__landing">
+          <img src={BgImg}    className="ds__landing-bg"     alt="" />
+          <img src={TableImg} className="ds__landing-table"  alt="" />
+          <img src={LImg}     className="ds__landing-left"   alt="" />
+          <img src={RImg}     className="ds__landing-right"  alt="" />
+          <img src={MdImg}    className="ds__landing-center" alt="" />
+        </div>
 
         {/* ── Layer 1 (bottom): Scene 2 panels — always full-size ── */}
         <span id="suits" style={{ position: 'absolute', top: 0 }} />
