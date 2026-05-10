@@ -81,17 +81,20 @@
 .ds {
   position: relative;
   width: 100vw;
-  height: 900vh;  /* extra 300vh lingering time after animation completes */
+  height: 1900vh;  /* 600vh reveal + 200vh linger + 250vh phase1 + 250vh phase2 + 350vh rotate + 200vh phase3 + 50vh tail */
   background: var(--color-black);
 }
 
-/* ── Sticky viewport ── */
+/* ── Fixed viewport — persists across section boundary for seamless handoff to Spread ── */
 .ds__sticky {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
   height: 100vh;
   width: 100%;
   overflow: hidden;
+  z-index: 50;
+  visibility: hidden; /* JS controls visibility via scroll position */
 }
 
 /* ═══════════════════════════════════════
@@ -340,3 +343,86 @@
 }
 .ds__panel.is-red   .ds__panel-tag { color: rgba(204, 0, 0, 0.6);   border-color: rgba(204, 0, 0, 0.25); }
 .ds__panel.is-joker .ds__panel-tag { color: rgba(201, 168, 76, 0.6); border-color: rgba(201, 168, 76, 0.25); }
+
+/* ═══════════════════════════════════════
+   TRANSITION CARDS  (Scene 2 → 3 bridge)
+   14 cards: 6 inner ring + 8 outer ring
+   GSAP drives x / y / opacity / scale
+   ═══════════════════════════════════════ */
+
+.ds__tc {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 165px;
+  height: 248px;
+  pointer-events: none;
+  will-change: transform;
+  z-index: 18;
+}
+
+.ds__tc-back {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-card);
+  background: linear-gradient(150deg, #040d1f 0%, #0b0b0b 100%);
+  border: 1px solid rgba(30, 60, 140, 0.35);  /* matches sp__card-back */
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ds__tc-back-pattern {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 9px,
+    rgba(30, 60, 140, 0.055) 9px,
+    rgba(30, 60, 140, 0.055) 10px
+  );
+}
+
+.ds__tc-back-suit {
+  position: relative;
+  font-size: 3.8rem;               /* matches sp__card-back-suit */
+  color: rgba(30, 60, 140, 0.20); /* matches sp__card-back-suit */
+  user-select: none;
+  line-height: 1;
+}
+.ds__tc.is-red .ds__tc-back {
+  background: linear-gradient(150deg, #1a0505 0%, #0b0b0b 100%);
+  border-color: rgba(140, 30, 30, 0.35);
+}
+.ds__tc.is-red .ds__tc-back-suit { color: rgba(140, 30, 30, 0.20); } /* matches sp__card-back-suit.is-red */
+
+/* ── Corner rank / suit notation (matches sp__card-corner) ── */
+.ds__tc-corner {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.05;
+  z-index: 2;
+  pointer-events: none;
+}
+.ds__tc-corner--tl { top: 0.6rem;    left: 0.65rem; }
+.ds__tc-corner--br { bottom: 0.6rem; right: 0.65rem; transform: rotate(180deg); }
+
+.ds__tc-rank {
+  font-family: var(--font-heading);
+  font-size: 1.35rem;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.62);
+  display: block;
+}
+.ds__tc-suit-sm {
+  font-size: 0.88rem;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.62);
+  display: block;
+}
+.ds__tc.is-red .ds__tc-rank,
+.ds__tc.is-red .ds__tc-suit-sm { color: rgba(204, 0, 0, 0.80); }

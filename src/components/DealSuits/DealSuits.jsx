@@ -46,18 +46,41 @@ const PANELS = [
 const CARD_W = 130
 const CARD_H = 195
 
+// ── Transition card definitions (14 cards: indices 0-5 inner ring, 6-13 outer ring) ──
+const INNER_N = 6
+const OUTER_N = 8
+const TC_SUITS = [
+  { suit: '♠', rank: 'A',  isRed: false },  // inner 0 — matches Spread card[0] (A♠) → lands on top
+  { suit: '♥', rank: 'K',  isRed: true  },  // inner 1
+  { suit: '♦', rank: 'Q',  isRed: true  },  // inner 2
+  { suit: '♣', rank: 'J',  isRed: false },  // inner 3
+  { suit: '♠', rank: '10', isRed: false },  // inner 4
+  { suit: '♥', rank: '9',  isRed: true  },  // inner 5
+  { suit: '♦', rank: '8',  isRed: true  },  // outer 0
+  { suit: '♣', rank: '7',  isRed: false },  // outer 1
+  { suit: '♠', rank: '6',  isRed: false },  // outer 2
+  { suit: '♥', rank: '5',  isRed: true  },  // outer 3
+  { suit: '♦', rank: '4',  isRed: true  },  // outer 4
+  { suit: '♣', rank: '3',  isRed: false },  // outer 5
+  { suit: '♠', rank: '2',  isRed: false },  // outer 6
+  { suit: '★', rank: '',   isRed: false },  // outer 7 — joker star (no rank)
+]
+
 export default function DealSuits() {
   const sectionRef  = useRef(null)
-  const cardRefs    = useRef([])    // card back visuals
-  const panelElRefs = useRef([])   // individual ds__panel elements (for clip-path)
-  const panelsRef   = useRef(null) // ds__panels container
-  const landingRef  = useRef(null) // landing image layer
+  const stickyRef   = useRef(null)   // fixed viewport layer — visibility managed via JS
+  const cardRefs    = useRef([])     // Scene 2 deal card backs
+  const panelElRefs = useRef([])     // ds__panel elements
+  const panelsRef   = useRef(null)   // ds__panels container
+  const landingRef  = useRef(null)   // landing image layer
   const expandedRef = useRef(false)
+  const trCardRefs  = useRef([])     // 14 transition cards
   const [hovered, setHovered] = useState(null)
 
   useEffect(() => {
     const vw = window.innerWidth
     const vh = window.innerHeight
+    const VH = vh / 100   // 1 CSS vh in pixels (e.g. 8.42px at 842px viewport)
     const COL_W  = vw / 5
     const COL_CX = PANELS.map((_, i) => (i + 0.5) * COL_W)
     const PILE_CX = vw / 2
@@ -65,14 +88,63 @@ export default function DealSuits() {
 
     const cards    = cardRefs.current.filter(Boolean)
     const panelEls = panelElRefs.current.filter(Boolean)
+    const trCards  = trCardRefs.current.filter(Boolean)
 
-    // clip-path that crops each panel to exactly one card-sized rectangle at center
+    // ── Transition card geometry (matches Spread.jsx pile coords) ──────────
+    const TR_W     = 165
+    const TR_H     = 248
+    const TR_CX    = vw / 2          // pile centre x (matches Spread.jsx)
+    const TR_CY    = vh * 0.68       // pile centre y (matches Spread.jsx for seamless handoff)
+    const TR_PILE_X = TR_CX - TR_W / 2
+    const TR_PILE_Y = TR_CY - TR_H / 2
+
+    // Ring is centred at vh*0.50 so both inner & outer rings fit within the viewport.
+    // vh-based radii guarantee the ring is always fully visible regardless of aspect ratio.
+    // (RING_CY is separate from TR_CY so the collapse pile still lands at Spread's coords.)
+    const RING_CY = vh * 0.46        // slightly above centre so enlarged rings still fit
+    const INNER_R = vh * 0.24        // was 0.18 — bigger inner ring, no overlap at 6 cards
+    const OUTER_R = vh * 0.42        // was 0.32 — generous outer ring, cards well-spaced
+
+    // Pre-compute clockwise ring target positions (0 = top, increase = CW)
+    // Uses RING_CY (vh*0.50) so the full ring fits within the viewport
+    const trTargetX = []
+    const trTargetY = []
+    for (let i = 0; i < INNER_N; i++) {
+      const a = (i * 2 * Math.PI / INNER_N) - Math.PI / 2
+      trTargetX.push(TR_CX   + INNER_R * Math.cos(a) - TR_W / 2)
+      trTargetY.push(RING_CY + INNER_R * Math.sin(a) - TR_H / 2)
+    }
+    for (let i = 0; i < OUTER_N; i++) {
+      const a = (i * 2 * Math.PI / OUTER_N) - Math.PI / 2
+      trTargetX.push(TR_CX   + OUTER_R * Math.cos(a) - TR_W / 2)
+      trTargetY.push(RING_CY + OUTER_R * Math.sin(a) - TR_H / 2)
+    }
+
+    // Pre-compute target rotation for each card (tangent to its ring position)
+    // rotation = angle_degrees + 90  →  card's long axis points along the circle tangent
+    const trTargetRotation = []
+    for (let i = 0; i < INNER_N; i++) {
+      const a = (i * 2 * Math.PI / INNER_N) - Math.PI / 2
+      trTargetRotation.push(a * 180 / Math.PI + 90)
+    }
+    for (let i = 0; i < OUTER_N; i++) {
+      const a = (i * 2 * Math.PI / OUTER_N) - Math.PI / 2
+      trTargetRotation.push(a * 180 / Math.PI + 90)
+    }
+
+    // Live angle state for auto-rotation ticker
+    const trAngles = [
+      ...Array.from({ length: INNER_N }, (_, i) => (i * 2 * Math.PI / INNER_N) - Math.PI / 2),
+      ...Array.from({ length: OUTER_N }, (_, i) => (i * 2 * Math.PI / OUTER_N) - Math.PI / 2),
+    ]
+
+    // clip-path values for Scene 2 panel animation
     const T = (vh - CARD_H) / 2
     const H = (COL_W - CARD_W) / 2
     const clipClosed = `inset(${T}px ${H}px ${T}px ${H}px)`
     const clipOpen   = 'inset(0px 0px 0px 0px)'
 
-    // ── Initial state ────────────────────────────────────────────────
+    // ── Initial states ────────────────────────────────────────────────────
     gsap.set(cards, {
       xPercent: -50, yPercent: -50,
       x: PILE_CX, y: PILE_CY,
@@ -80,33 +152,32 @@ export default function DealSuits() {
       zIndex: 20,
     })
     const watermark = panelsRef.current.querySelector('.ds__watermark')
-
-    // Panels: card-sized clip, invisible. Watermark hidden until scene 2 fully reveals.
     gsap.set(panelEls, { clipPath: clipClosed, opacity: 0 })
     gsap.set(watermark, { opacity: 0 })
     gsap.set(panelsRef.current, { opacity: 1, pointerEvents: 'none' })
 
-    // ── Master timeline ──────────────────────────────────────────────
+    // Transition cards: hidden at pile
+    gsap.set(trCards, {
+      x: TR_PILE_X, y: TR_PILE_Y,
+      opacity: 0, scale: 0.85,
+      zIndex: 18,
+    })
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  SCENE 2 — card deal reveal  (0 → 600 vh)
+    // ══════════════════════════════════════════════════════════════════════
     const tl = gsap.timeline({ paused: true })
 
-    // Phase 1 (0.00 → 0.10): pile floats up to vertical centre
     tl.to(cards, { y: vh * 0.5, duration: 0.10, ease: 'power2.out' }, 0)
 
-    // Phase 2 (0.08 → 0.36): fan out to column positions
     cards.forEach((card, i) => {
       tl.to(card, { x: COL_CX[i], duration: 0.28, ease: 'power2.inOut' }, 0.08)
     })
 
-    // Phase 3a (0.36 → 0.50): card backs squish away — force2D avoids GPU blur at scaleX≈0
     tl.to(cards, { scaleX: 0, duration: 0.14, ease: 'power2.in', force3D: false }, 0.36)
-
-    // Phase 3 midpoint (0.50): panels appear at card footprint — no gap before expansion
     tl.set(panelEls, { opacity: 1 }, 0.50)
-
-    // Phase 3b (0.50 → 0.56): card backs fade out simultaneously
     tl.to(cards, { opacity: 0, duration: 0.06, ease: 'none', force3D: false }, 0.50)
 
-    // Phase 4 (0.50 → 0.95): clip-path bursts open immediately — power3.out starts at full speed
     panelEls.forEach(panel => {
       tl.fromTo(panel,
         { clipPath: clipClosed },
@@ -115,14 +186,9 @@ export default function DealSuits() {
       )
     })
 
-    // Landing layer fades out as panels start expanding
     tl.to(landingRef.current, { opacity: 0, duration: 0.18, ease: 'power1.in' }, 0.47)
-
-    // Watermark fades in near end of reveal
     tl.to(watermark, { opacity: 1, duration: 0.12, ease: 'power1.in' }, 0.88)
 
-    // ── ScrollTrigger ────────────────────────────────────────────────
-    // end at +=600% so animation completes at 600vh, remaining 300vh = linger on Scene 2
     const st = ScrollTrigger.create({
       trigger:   sectionRef.current,
       start:     'top top',
@@ -139,7 +205,216 @@ export default function DealSuits() {
       },
     })
 
-    // ── Mouse-move parallax ──────────────────────────────────────────
+    // ══════════════════════════════════════════════════════════════════════
+    //  PHASE 1 — panels collapse → pile  (800 → 1050 vh)
+    // ══════════════════════════════════════════════════════════════════════
+    const p1tl = gsap.timeline({ paused: true })
+
+    p1tl.to(watermark, { opacity: 0, duration: 0.12, ease: 'power1.in' }, 0)
+
+    panelEls.forEach((panel, i) => {
+      // Translate each panel's visual centre from its column centre to the pile centre
+      const deltaX = TR_CX - COL_CX[i]
+      const deltaY = TR_CY - vh / 2
+      p1tl.to(panel, {
+        x: deltaX,
+        y: deltaY,
+        scale: 0.08,
+        opacity: 0,
+        duration: 0.60,
+        ease: 'power3.in',
+      }, i * 0.05)
+    })
+
+    // Transition cards pop in at pile — scale only; opacity controlled via onUpdate (not scrub)
+    p1tl.to(trCards, {
+      scale: 1,
+      duration: 0.22,
+      ease: 'back.out(1.3)',
+      stagger: 0.016,
+    }, 0.52)
+
+    // Helper: set trCards opacity directly (bypasses GSAP tween system to avoid scrub conflict)
+    const setTrOpacity = op => {
+      trCards.forEach(c => { c.style.opacity = String(op) })
+    }
+
+    const p1st = ScrollTrigger.create({
+      trigger:   sectionRef.current,
+      start:     () => `top+=${800 * VH}px top`,
+      end:       () => `top+=${1050 * VH}px top`,
+      scrub:     1.0,
+      animation: p1tl,
+      onEnter: () => {
+        expandedRef.current = false
+        setHovered(null)
+        gsap.set(panelsRef.current, { pointerEvents: 'none' })
+      },
+      onLeaveBack: () => {
+        // Returned to Scene 2 linger zone — restore panel interactivity
+        expandedRef.current = true
+        gsap.set(panelsRef.current, { pointerEvents: 'auto' })
+        setTrOpacity(0)
+      },
+      onLeave:    () => setTrOpacity(1),   // Phase 1 complete — keep fully visible
+      onUpdate:   (self) => {
+        // Fade trCards in starting at 52% of Phase 1 (when p1tl reveals them)
+        const op = self.progress < 0.52 ? 0 : Math.min(1, (self.progress - 0.52) / 0.3)
+        setTrOpacity(op)
+      },
+    })
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  PHASE 2 — pile → concentric circles  (1050 → 1300 vh)
+    // ══════════════════════════════════════════════════════════════════════
+    const p2tl = gsap.timeline({ paused: true })
+
+    trCards.forEach((card, i) => {
+      p2tl.to(card, {
+        x:        trTargetX[i],
+        y:        trTargetY[i],
+        rotation: trTargetRotation[i],  // rotate card to follow ring tangent
+        duration: 0.62,
+        ease:     'power2.out',
+      }, i * 0.038)   // clockwise stagger (index order = top → CW)
+    })
+
+    const p2st = ScrollTrigger.create({
+      trigger:   sectionRef.current,
+      start:     () => `top+=${1050 * VH}px top`,
+      end:       () => `top+=${1300 * VH}px top`,
+      scrub:     1.0,
+      animation: p2tl,
+    })
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  PHASE 2.5 — auto-rotation linger  (1300 → 1650 vh)
+    //  Inner ring: CCW  |  Outer ring: CW
+    // ══════════════════════════════════════════════════════════════════════
+    let rotationTickerFn = null
+
+    const startRotation = () => {
+      if (rotationTickerFn) return
+      rotationTickerFn = (_time, deltaTime) => {
+        const dt = Math.min(deltaTime / 1000, 0.05)   // cap to avoid jumps on tab wake
+        for (let i = 0; i < INNER_N; i++) {
+          trAngles[i] -= 0.28 * dt   // CCW
+          const nx = TR_CX   + INNER_R * Math.cos(trAngles[i]) - TR_W / 2
+          const ny = RING_CY + INNER_R * Math.sin(trAngles[i]) - TR_H / 2
+          gsap.set(trCards[i], {
+            x: nx, y: ny,
+            rotation: trAngles[i] * 180 / Math.PI + 90,  // tangent rotation
+            zIndex: Math.round(10 + (RING_CY + INNER_R * Math.sin(trAngles[i])) / vh * 12),
+          })
+        }
+        for (let i = INNER_N; i < INNER_N + OUTER_N; i++) {
+          trAngles[i] += 0.18 * dt   // CW
+          const nx = TR_CX   + OUTER_R * Math.cos(trAngles[i]) - TR_W / 2
+          const ny = RING_CY + OUTER_R * Math.sin(trAngles[i]) - TR_H / 2
+          gsap.set(trCards[i], {
+            x: nx, y: ny,
+            rotation: trAngles[i] * 180 / Math.PI + 90,  // tangent rotation
+            zIndex: Math.round(10 + (RING_CY + OUTER_R * Math.sin(trAngles[i])) / vh * 12),
+          })
+        }
+      }
+      gsap.ticker.add(rotationTickerFn)
+    }
+
+    const stopRotation = () => {
+      if (rotationTickerFn) {
+        gsap.ticker.remove(rotationTickerFn)
+        rotationTickerFn = null
+      }
+    }
+
+    const p25st = ScrollTrigger.create({
+      trigger:     sectionRef.current,
+      start:       () => `top+=${1300 * VH}px top`,
+      end:         () => `top+=${1650 * VH}px top`,
+      onEnter: () => {
+        // Kill lingering p2tl scrub-smoothing tween before starting rotation to
+        // prevent a 1-second conflict that caused the Phase 2→2.5 jump.
+        gsap.killTweensOf(p2tl)
+        p2tl.progress(1, true)
+        startRotation()
+      },
+      onEnterBack: startRotation,
+      onLeave:     () => { stopRotation(); setupPhase3() },
+      onLeaveBack: stopRotation,
+    })
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  PHASE 3 — scroll-driven collapse back to pile  (1650 → 1850 vh)
+    //  Created dynamically in setupPhase3 so it captures the exact ring
+    //  positions at the moment rotation stops, enabling clean scroll-back.
+    // ══════════════════════════════════════════════════════════════════════
+    let p3tl     = null   // timeline built per Phase-3 entry (positions vary with rotation)
+    let p3st_dyn = null   // ScrollTrigger that scrubs p3tl
+
+    const setupPhase3 = () => {
+      // Tear down any previous Phase-3 trigger/timeline
+      if (p3st_dyn) { p3st_dyn.kill(); p3st_dyn = null }
+      if (p3tl)     { p3tl.kill();     p3tl     = null }
+
+      // Freeze p1/p2 scrub so their smoothing tweens can't fight the collapse
+      p1st.disable(false)
+      p2st.disable(false)
+      gsap.killTweensOf(p1tl)
+      gsap.killTweensOf(p2tl)
+      p1tl.progress(1, true)
+      p2tl.progress(1, true)
+
+      // Sync GSAP cache (opacity/scale may lag after ticker)
+      gsap.set(trCards, { opacity: 1, scale: 1 })
+      gsap.killTweensOf(trCards)
+
+      // Build scrub timeline — `to` captures current positions at progress=0 (ring state)
+      p3tl = gsap.timeline({ paused: true })
+      p3tl.to(trCards, {
+        x:        TR_PILE_X,
+        y:        TR_PILE_Y,
+        rotation: 0,
+        zIndex:   (i) => i === 0 ? 25 : 18,  // A♠ on top → matches Spread pile
+        duration: 1.0,
+        ease:     'power3.in',
+        stagger:  { amount: 0.45, from: 'random' },
+      })
+
+      // Scroll-driven trigger for Phase 3
+      p3st_dyn = ScrollTrigger.create({
+        trigger:   sectionRef.current,
+        start:     () => `top+=${1650 * VH}px top`,
+        end:       () => `top+=${1850 * VH}px top`,
+        scrub:     1.0,
+        animation: p3tl,
+
+        // Scrolling backward past Phase 3 start → back into Phase 2.5 rotation zone
+        onLeaveBack: () => {
+          p2st.enable()
+          p1st.enable()
+          startRotation()
+        },
+      })
+    }
+
+    // ── Fixed-layer visibility: show only while DealSuits section overlaps viewport ──
+    // position:fixed ignores the parent section, so we manually sync visibility so
+    // the fixed layer hides when the user has scrolled past DealSuits into Spread etc.
+    const updateVisibility = () => {
+      const el = stickyRef.current
+      const sec = sectionRef.current
+      if (!el || !sec) return
+      const r = sec.getBoundingClientRect()
+      const inView = r.top < window.innerHeight && r.bottom > 0
+      el.style.visibility = inView ? 'visible' : 'hidden'
+      el.style.pointerEvents = inView ? '' : 'none'
+    }
+    updateVisibility()   // set correct state on mount
+    window.addEventListener('scroll', updateVisibility, { passive: true })
+    ScrollTrigger.addEventListener('refresh', updateVisibility)
+
+    // ── Mouse-move parallax (Scene 1 landing layer) ──────────────────────
     const lnd = landingRef.current
     const LL = {
       bg:     lnd.querySelector('.ds__landing-bg'),
@@ -148,11 +423,10 @@ export default function DealSuits() {
       right:  lnd.querySelector('.ds__landing-right'),
       center: lnd.querySelector('.ds__landing-center'),
     }
-    // depth = max horizontal shift in px per layer (bg moves least → most depth)
     const DEPTH = { bg: 10, table: 20, left: 38, right: 38, center: 30 }
 
     const onMouseMove = e => {
-      const dx = e.clientX / vw - 0.5  // -0.5 … 0.5
+      const dx = e.clientX / vw - 0.5
       const dy = e.clientY / vh - 0.5
       Object.entries(LL).forEach(([k, el]) => {
         if (!el) return
@@ -166,14 +440,21 @@ export default function DealSuits() {
         gsap.to(el, { x: 0, y: 0, duration: 1.6, ease: 'power3.out', overwrite: 'auto' })
       })
     }
-    // Slightly scale bg so movement never exposes edges
     gsap.set(LL.bg, { scale: 1.04, transformOrigin: '50% 50%' })
 
     window.addEventListener('mousemove', onMouseMove)
     window.addEventListener('mouseleave', onMouseLeave)
 
     return () => {
-      st.kill(); tl.kill()
+      window.removeEventListener('scroll', updateVisibility)
+      ScrollTrigger.removeEventListener('refresh', updateVisibility)
+      st.kill();   tl.kill()
+      p1st.kill(); p1tl.kill()
+      p2st.kill(); p2tl.kill()
+      p25st.kill()
+      if (p3st_dyn) p3st_dyn.kill()
+      if (p3tl)     p3tl.kill()
+      stopRotation()
       window.removeEventListener('mousemove', onMouseMove)
       window.removeEventListener('mouseleave', onMouseLeave)
     }
@@ -186,7 +467,7 @@ export default function DealSuits() {
 
   return (
     <section ref={sectionRef} id="deal" className="ds">
-      <div className="ds__sticky">
+      <div ref={stickyRef} className="ds__sticky">
 
         {/* ── Layer 0: Landing images — visible during Scene 1 ── */}
         <div ref={landingRef} className="ds__landing">
@@ -245,7 +526,7 @@ export default function DealSuits() {
           ))}
         </div>
 
-        {/* ── Layer 2 (top): Card back visuals — Phases 1-3 only ── */}
+        {/* ── Layer 2: Card back visuals — Scene 2 deal animation only ── */}
         {PANELS.map((panel, i) => (
           <div
             key={panel.id}
@@ -258,6 +539,34 @@ export default function DealSuits() {
                 {panel.suit}
               </span>
             </div>
+          </div>
+        ))}
+
+        {/* ── Layer 3: Transition cards (Scene 2→3 bridge) ── */}
+        {TC_SUITS.map((tc, i) => (
+          <div
+            key={`tc-${i}`}
+            ref={el => (trCardRefs.current[i] = el)}
+            className={`ds__tc${tc.isRed ? ' is-red' : ''}`}
+          >
+            <div className="ds__tc-back">
+              <div className="ds__tc-back-pattern" />
+              <span className="ds__tc-back-suit">
+                {tc.suit}
+              </span>
+            </div>
+            {tc.rank && (
+              <>
+                <div className="ds__tc-corner ds__tc-corner--tl">
+                  <span className="ds__tc-rank">{tc.rank}</span>
+                  <span className="ds__tc-suit-sm">{tc.suit}</span>
+                </div>
+                <div className="ds__tc-corner ds__tc-corner--br">
+                  <span className="ds__tc-rank">{tc.rank}</span>
+                  <span className="ds__tc-suit-sm">{tc.suit}</span>
+                </div>
+              </>
+            )}
           </div>
         ))}
 
