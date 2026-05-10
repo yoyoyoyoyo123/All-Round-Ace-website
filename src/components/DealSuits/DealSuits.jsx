@@ -210,23 +210,22 @@ export default function DealSuits() {
     // ══════════════════════════════════════════════════════════════════════
     const p1tl = gsap.timeline({ paused: true })
 
-    p1tl.to(watermark, { opacity: 0, duration: 0.12, ease: 'power1.in' }, 0)
-
     panelEls.forEach((panel, i) => {
-      // Translate each panel's visual centre from its column centre to the pile centre
+      // x / y / scale / zIndex only — opacity is bypassed below via onUpdate
       const deltaX = TR_CX - COL_CX[i]
       const deltaY = TR_CY - vh / 2
+      const distFromCenter = Math.abs(i - 2)
       p1tl.to(panel, {
         x: deltaX,
         y: deltaY,
         scale: 0.08,
-        opacity: 0,
+        zIndex: distFromCenter + 1,
         duration: 0.60,
         ease: 'power3.in',
       }, i * 0.05)
     })
 
-    // Transition cards pop in at pile — scale only; opacity controlled via onUpdate (not scrub)
+    // Transition cards pop in at pile — scale only; opacity controlled via onUpdate
     p1tl.to(trCards, {
       scale: 1,
       duration: 0.22,
@@ -234,7 +233,20 @@ export default function DealSuits() {
       stagger: 0.016,
     }, 0.52)
 
-    // Helper: set trCards opacity directly (bypasses GSAP tween system to avoid scrub conflict)
+    // p1tl total duration = 0.80 (panel 4 ends at 0.20+0.60)
+    // Normalised tween boundaries for direct-style opacity (same pattern as setTrOpacity)
+    // panel i: start = i*0.05/0.80 = i*0.0625, span = 0.60/0.80 = 0.75   (power3.in)
+    // watermark:  start = 0,           span = 0.12/0.80 = 0.15             (linear)
+    const setPanelOpacity = prog => {
+      panelEls.forEach((el, i) => {
+        const t = Math.max(0, Math.min(1, (prog - i * 0.0625) / 0.75))
+        el.style.opacity = String(1 - t * t * t)  // power3.in, FROM=1 hardcoded
+      })
+      const wt = Math.max(0, Math.min(1, prog / 0.15))
+      watermark.style.opacity = String(1 - wt)    // linear, FROM=1 hardcoded
+    }
+
+    // Helper: set trCards opacity directly (bypasses GSAP tween system)
     const setTrOpacity = op => {
       trCards.forEach(c => { c.style.opacity = String(op) })
     }
@@ -249,16 +261,21 @@ export default function DealSuits() {
         expandedRef.current = false
         setHovered(null)
         gsap.set(panelsRef.current, { pointerEvents: 'none' })
+        // Reverse stacking so Joker (DOM-first = normally bottom) stays on top
+        panelEls.forEach((el, i) => gsap.set(el, { zIndex: panelEls.length - i }))
       },
       onLeaveBack: () => {
-        // Returned to Scene 2 linger zone — restore panel interactivity
+        // Returned to Scene 2 linger zone — restore panel interactivity + stacking
         expandedRef.current = true
         gsap.set(panelsRef.current, { pointerEvents: 'auto' })
+        panelEls.forEach(el => gsap.set(el, { zIndex: 'auto' }))
+        panelEls.forEach(el => { el.style.opacity = '1' })
+        watermark.style.opacity = '1'
         setTrOpacity(0)
       },
-      onLeave:    () => setTrOpacity(1),   // Phase 1 complete — keep fully visible
-      onUpdate:   (self) => {
-        // Fade trCards in starting at 52% of Phase 1 (when p1tl reveals them)
+      onLeave: () => setTrOpacity(1),
+      onUpdate: (self) => {
+        setPanelOpacity(self.progress)
         const op = self.progress < 0.52 ? 0 : Math.min(1, (self.progress - 0.52) / 0.3)
         setTrOpacity(op)
       },

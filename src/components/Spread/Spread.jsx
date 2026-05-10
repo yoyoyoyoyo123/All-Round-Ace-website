@@ -52,10 +52,11 @@ export default function Spread() {
     const cards = cardRefs.current.filter(Boolean)
     const stage = stageRef.current
 
-    // ── Initial pile state ────────────────────────────────────────
+    // ── Initial pile state — hidden until DealSuits TC pile hands off ──
     gsap.set(cards, {
       x: PILE_X, y: PILE_Y,
       scale: 1,
+      opacity: 0,
       zIndex: i => N - i,
       force3D: true,
     })
@@ -195,6 +196,8 @@ export default function Spread() {
       end:       '+=350%',
       scrub:     1.0,
       animation: tl,
+      onEnter:     () => gsap.set(cards, { opacity: 1 }),
+      onLeaveBack: () => gsap.set(cards, { opacity: 0 }),
       onUpdate(self) {
         const done = self.progress >= 0.98
         if (done === spreadDoneRef.current) return
