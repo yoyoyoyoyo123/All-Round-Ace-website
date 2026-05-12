@@ -273,7 +273,21 @@ export default function DealSuits() {
         watermark.style.opacity = '1'
         setTrOpacity(0)
       },
-      onLeave: () => setTrOpacity(1),
+      onLeave: () => {
+        setTrOpacity(1)
+        // Re-build p2st if it was killed during a backward scroll journey.
+        if (!p2st) {
+          if (collapseTween) { collapseTween.kill(); collapseTween = null }
+          p2tl.progress(0, true)
+          p2st = ScrollTrigger.create({
+            trigger:   sectionRef.current,
+            start:     () => `top+=${1050 * VH}px top`,
+            end:       () => `top+=${1300 * VH}px top`,
+            scrub:     1.0,
+            animation: p2tl,
+          })
+        }
+      },
       onUpdate: (self) => {
         setPanelOpacity(self.progress)
         const op = self.progress < 0.52 ? 0 : Math.min(1, (self.progress - 0.52) / 0.3)
@@ -296,13 +310,14 @@ export default function DealSuits() {
       }, i * 0.038)   // clockwise stagger (index order = top → CW)
     })
 
-    const p2st = ScrollTrigger.create({
+    let p2st = ScrollTrigger.create({
       trigger:   sectionRef.current,
       start:     () => `top+=${1050 * VH}px top`,
       end:       () => `top+=${1300 * VH}px top`,
       scrub:     1.0,
       animation: p2tl,
     })
+    let collapseTween = null   // rings→pile animation (Phase 2 backward)
 
     // ══════════════════════════════════════════════════════════════════════
     //  PHASE 2.5 — auto-rotation linger  (1300 → 1650 vh)
@@ -350,15 +365,56 @@ export default function DealSuits() {
       start:       () => `top+=${1300 * VH}px top`,
       end:         () => `top+=${1650 * VH}px top`,
       onEnter: () => {
-        // Kill lingering p2tl scrub-smoothing tween before starting rotation to
-        // prevent a 1-second conflict that caused the Phase 2→2.5 jump.
+        // Kill any in-progress collapse tween, rebuild p2st if needed.
+        if (collapseTween) { collapseTween.kill(); collapseTween = null }
+        if (!p2st) {
+          p2tl.progress(1, true)
+          p2st = ScrollTrigger.create({
+            trigger:   sectionRef.current,
+            start:     () => `top+=${1050 * VH}px top`,
+            end:       () => `top+=${1300 * VH}px top`,
+            scrub:     1.0,
+            animation: p2tl,
+          })
+        }
         gsap.killTweensOf(p2tl)
         p2tl.progress(1, true)
         startRotation()
       },
       onEnterBack: startRotation,
       onLeave:     () => { stopRotation(); setupPhase3() },
-      onLeaveBack: stopRotation,
+      onLeaveBack: () => {
+        stopRotation()
+        if (p3st_dyn) { p3st_dyn.kill(); p3st_dyn = null }
+        if (p3tl)     { p3tl.kill();     p3tl     = null }
+        if (p2st)     { p2st.kill(); p2st = null }
+        if (collapseTween) { collapseTween.kill(); collapseTween = null }
+
+        // Force each card back to its true ring position using the last known
+        // trAngles state. This corrects for the case where p3tl's scrub lag
+        // left cards at the pile position when it was killed during a fast
+        // backward scroll — without this gsap.set, collapseTween would start
+        // from pile and animate pile→pile with zero visible movement.
+        for (let i = 0; i < INNER_N; i++) {
+          const nx = TR_CX   + INNER_R * Math.cos(trAngles[i]) - TR_W / 2
+          const ny = RING_CY + INNER_R * Math.sin(trAngles[i]) - TR_H / 2
+          gsap.set(trCards[i], { x: nx, y: ny, rotation: trAngles[i] * 180 / Math.PI + 90 })
+        }
+        for (let i = INNER_N; i < INNER_N + OUTER_N; i++) {
+          const nx = TR_CX   + OUTER_R * Math.cos(trAngles[i]) - TR_W / 2
+          const ny = RING_CY + OUTER_R * Math.sin(trAngles[i]) - TR_H / 2
+          gsap.set(trCards[i], { x: nx, y: ny, rotation: trAngles[i] * 180 / Math.PI + 90 })
+        }
+
+        collapseTween = gsap.to(trCards, {
+          x:        TR_PILE_X,
+          y:        TR_PILE_Y,
+          rotation: 0,
+          duration: 1.2,
+          ease:     'power2.inOut',
+          stagger:  { amount: 0.4, from: 'random' },
+        })
+      },
     })
 
     // ══════════════════════════════════════════════════════════════════════
@@ -374,17 +430,15 @@ export default function DealSuits() {
       if (p3st_dyn) { p3st_dyn.kill(); p3st_dyn = null }
       if (p3tl)     { p3tl.kill();     p3tl     = null }
 
-      // Freeze p1/p2 scrub so their smoothing tweens can't fight the collapse
-      p1st.disable(false)
-      p2st.disable(false)
       gsap.killTweensOf(p1tl)
       gsap.killTweensOf(p2tl)
       p1tl.progress(1, true)
       p2tl.progress(1, true)
 
       // Sync GSAP cache (opacity/scale may lag after ticker)
+      // NOTE: do NOT killTweensOf(trCards) here — that would kill p2tl's internal
+      // tweens on trCards, breaking Phase 2 backward scrub (rings→pile).
       gsap.set(trCards, { opacity: 1, scale: 1 })
-      gsap.killTweensOf(trCards)
 
       // Build scrub timeline — `to` captures current positions at progress=0 (ring state)
       p3tl = gsap.timeline({ paused: true })
@@ -406,10 +460,12 @@ export default function DealSuits() {
         scrub:     1.0,
         animation: p3tl,
 
-        // Scrolling backward past Phase 3 start → back into Phase 2.5 rotation zone
+        // Scrolling backward past Phase 3 start → back into Phase 2.5 rotation zone.
+        // Kill the Phase 3 trigger/timeline first so the scrub tween stops fighting
+        // trCards x/y/rotation before the rotation ticker takes over.
         onLeaveBack: () => {
-          p2st.enable()
-          p1st.enable()
+          if (p3st_dyn) { p3st_dyn.kill(); p3st_dyn = null }
+          if (p3tl)     { p3tl.kill();     p3tl     = null }
           startRotation()
         },
       })
@@ -467,7 +523,9 @@ export default function DealSuits() {
       ScrollTrigger.removeEventListener('refresh', updateVisibility)
       st.kill();   tl.kill()
       p1st.kill(); p1tl.kill()
-      p2st.kill(); p2tl.kill()
+      if (p2st)          p2st.kill()
+      p2tl.kill()
+      if (collapseTween) collapseTween.kill()
       p25st.kill()
       if (p3st_dyn) p3st_dyn.kill()
       if (p3tl)     p3tl.kill()
