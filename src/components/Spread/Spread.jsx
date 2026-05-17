@@ -35,11 +35,14 @@ export default function Spread() {
   const sectionRef     = useRef(null)
   const stageRef       = useRef(null)
   const cardRefs       = useRef([])
+  const exitTextRef    = useRef(null)
   const spreadDoneRef  = useRef(false)
+  const exitActiveRef  = useRef(false)
   const carouselOffRef = useRef(0)
   const focusIdxRef    = useRef(CENTER)
-  const [focusIdx, setFocusIdx] = useState(CENTER)
-  const [isDone, setIsDone]     = useState(false)
+  const [focusIdx,      setFocusIdx]      = useState(CENTER)
+  const [isDone,        setIsDone]        = useState(false)
+  const [isExitActive,  setIsExitActive]  = useState(false)
 
   useEffect(() => {
     const vw = window.innerWidth
@@ -123,7 +126,7 @@ export default function Spread() {
     let startX = 0, lastX = 0, velX = 0, rafId = null
 
     const onDown = e => {
-      if (!spreadDoneRef.current) return
+      if (!spreadDoneRef.current || exitActiveRef.current) return
       isDragging = true
       didDrag    = false
       startX = lastX = e.clientX
@@ -217,9 +220,103 @@ export default function Spread() {
       },
     })
 
+    // ── Exit transition (700 → 1100 vh) ──────────────────────────────────
+    const exitTextEl = exitTextRef.current
+
+    const leftCards   = cards.slice(0, 4)   // indices 0-3 → fall left
+    const rightCards  = cards.slice(6)       // indices 6-9 → fall right
+    const centerCards = cards.slice(4, 6)   // indices 4-5 → fall down last
+
+    // Absolute landing positions
+    const fallY      = FINAL_Y + vh * 1.5
+    const leftEndX   = leftCards.map((_, li) =>
+      finalX(li) - (vw * 1.0 + (3 - li) * 200)
+    )
+    const rightEndX  = rightCards.map((_, ri) =>
+      finalX(ri + 6) + (vw * 1.0 + ri * 200)
+    )
+
+    const exitTl = gsap.timeline({ paused: true })
+
+    // Stage tilts — "camera looks down" into the floor
+    exitTl.fromTo(stageRef.current,
+      { rotateX: 0 },
+      { rotateX: 26, transformOrigin: '50% 72%', ease: 'power1.inOut', duration: 0.55 },
+      0
+    )
+
+    // Left cards sweep lower-left, outermost first (from: 'start' → 0,1,2,3)
+    exitTl.fromTo(leftCards,
+      { x: (i) => finalX(i), y: FINAL_Y, rotateZ: 0, opacity: 1 },
+      {
+        x: (i) => leftEndX[i],
+        y: fallY,
+        rotateZ: (i) => -32 - (3 - i) * 16,
+        opacity: 0,
+        ease: 'power2.in',
+        duration: 0.62,
+        stagger: { amount: 0.14, from: 'start' },
+      },
+      0.06
+    )
+
+    // Right cards sweep lower-right, outermost first (from: 'end' → 9,8,7,6)
+    exitTl.fromTo(rightCards,
+      { x: (i) => finalX(i + 6), y: FINAL_Y, rotateZ: 0, opacity: 1 },
+      {
+        x: (i) => rightEndX[i],
+        y: fallY,
+        rotateZ: (i) => 32 + i * 16,
+        opacity: 0,
+        ease: 'power2.in',
+        duration: 0.62,
+        stagger: { amount: 0.14, from: 'end' },
+      },
+      0.06
+    )
+
+    // Center cards fall straight down, latest
+    exitTl.fromTo(centerCards,
+      { y: FINAL_Y, opacity: 1 },
+      { y: FINAL_Y + vh * 2, opacity: 0, ease: 'power2.in', duration: 0.45 },
+      0.54
+    )
+
+    // Title blooms in as center clears
+    exitTl.fromTo(exitTextEl,
+      { opacity: 0, scale: 0.88, y: 16 },
+      { opacity: 1, scale: 1,    y: 0,  ease: 'power2.out', duration: 0.42 },
+      0.36
+    )
+
+    // Title fades before Scene 4 takes over
+    exitTl.to(exitTextEl,
+      { opacity: 0, ease: 'power1.in', duration: 0.22 },
+      0.86
+    )
+
+    // Stage tilts back to flat as Scene 4 begins
+    exitTl.fromTo(stageRef.current,
+      { rotateX: 26 },
+      { rotateX: 0, ease: 'power1.inOut', duration: 0.38 },
+      0.76
+    )
+
+    const exitSt = ScrollTrigger.create({
+      trigger:   sectionRef.current,
+      start:     () => `top+=${vh * 7} top`,
+      end:       () => `top+=${vh * 11} top`,
+      scrub:     1.5,
+      animation: exitTl,
+      onEnter:     () => { exitActiveRef.current = true;  setIsExitActive(true)  },
+      onLeaveBack: () => { exitActiveRef.current = false; setIsExitActive(false) },
+    })
+
     return () => {
       st.kill()
       tl.kill()
+      exitSt.kill()
+      exitTl.kill()
       cancelAnimationFrame(rafId)
       stage.removeEventListener('pointerdown',   onDown)
       stage.removeEventListener('pointermove',   onMove)
@@ -241,7 +338,7 @@ export default function Spread() {
         </div>
 
         {/* Info bar */}
-        <div className="sp__info">
+        <div className="sp__info" style={{ opacity: isExitActive ? 0 : 1, transition: 'opacity 0.5s ease' }}>
           <div key={focusIdx} className="sp__info-content">
             <p className="sp__info-year">{work.year}</p>
             <h2 className="sp__info-title">{work.title}</h2>
@@ -280,9 +377,16 @@ export default function Spread() {
         </div>
 
         {/* Drag hint */}
-        <p className="sp__hint" style={{ opacity: isDone ? 1 : 0 }}>
+        <p className="sp__hint" style={{ opacity: isDone && !isExitActive ? 1 : 0 }}>
           ← &nbsp;DRAG TO EXPLORE&nbsp; →
         </p>
+
+        {/* Exit transition title — revealed as cards sweep away */}
+        <div ref={exitTextRef} className="sp__exit-text">
+          <p className="sp__exit-scene">SCENE IV</p>
+          <h2 className="sp__exit-title">THE ACE</h2>
+          <p className="sp__exit-sub">ALL ROUND ACE STUDIO</p>
+        </div>
 
       </div>
     </section>
