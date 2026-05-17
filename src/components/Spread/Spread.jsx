@@ -31,11 +31,70 @@ function scaleFor(dist) {
   return DIST_SCALE[Math.min(dist, DIST_SCALE.length - 1)]
 }
 
+// ── Visual-magic extra falling cards ──────────────────────────────────────
+// Wave 1 (0-31):  edge-heavy, early delays  0.04-0.59
+// Wave 2 (32-59): wider spread, late delays 0.48-0.93  → second-text density surge
+// Wave 3 (60-79): upper-zone rain — very close to top edge, lands in top-half only
+//                 fills the void above that waves 1 & 2 miss
+//
+// sy  close to viewport top so cards are visible from the moment the fall begins.
+// ey  spans 0 → 1.3 so cards are distributed across the FULL screen height.
+const EXTRA_N = 96
+const _eSeed = (() => {
+  let s = 0xb00b1e5 >>> 0
+  return () => { s ^= s << 13; s ^= s >> 17; s ^= s << 5; return (s >>> 0) / 4294967296 }
+})()
+const _XSUITS = ['♠', '♥', '♦', '♣']
+const EXTRA_DEFS = Array.from({ length: EXTRA_N }, (_, i) => {
+  const wave2 = i >= 32 && i < 60
+  const wave3 = i >= 60                         // upper-zone rain
+
+  if (wave3) {
+    // Upper-zone: sy hugs the very top edge (-0.01 → -0.18) so cards are
+    // VISIBLE from the first scroll pixel and rain downward through the top
+    // third of the screen.  Stay on left/right edges (never centre).
+    const w3idx  = i - 60                       // 0 … 35
+    const w3left = w3idx < 18
+    return {
+      sx:    w3left ? 0.01 + _eSeed() * 0.28 : 0.71 + _eSeed() * 0.28,
+      sy:   -0.01 - _eSeed() * 0.17,            // -0.01 → -0.18 (right at top edge)
+      ex:    w3left ? 0.01 + _eSeed() * 0.28 : 0.71 + _eSeed() * 0.28,
+      ey:    0.05 + _eSeed() * 0.55,             // 0.05 → 0.60  (upper to mid)
+      rotA: (_eSeed() - 0.5) * 45,
+      rotB: (_eSeed() - 0.5) * 120,
+      delay: _eSeed() * 0.38,                    // 0 → 0.38  all appear early
+      sc:    0.48 + _eSeed() * 0.38,
+      suit:  _XSUITS[i % 4],
+      isRed: i % 2 !== 0,
+    }
+  }
+
+  const left = wave2 ? i % 2 === 0 : i < 16
+  return {
+    sx:    left ? _eSeed() * 0.32 : 0.68 + _eSeed() * 0.32,
+    sy:   -0.12 - _eSeed() * (wave2 ? 0.90 : 0.72),  // -0.12 → -1.02/-0.84
+    ex:    left ? _eSeed() * (wave2 ? 0.44 : 0.36) : (wave2 ? 0.56 : 0.64) + _eSeed() * (wave2 ? 0.44 : 0.36),
+    ey:    0.04 + _eSeed() * (wave2 ? 1.28 : 1.05),   // full height + past bottom
+    rotA: (_eSeed() - 0.5) * 80,
+    rotB: (_eSeed() - 0.5) * (wave2 ? 220 : 160),
+    delay: wave2
+      ? 0.48 + _eSeed() * 0.45   // wave 2: 0.48 – 0.93
+      : 0.04 + _eSeed() * 0.55,  // wave 1: 0.04 – 0.59
+    sc:    0.45 + _eSeed() * (wave2 ? 0.52 : 0.42),
+    suit:  _XSUITS[i % 4],
+    isRed: i % 2 !== 0,
+  }
+})
+
 export default function Spread() {
   const sectionRef     = useRef(null)
   const stageRef       = useRef(null)
+  const stickyRef      = useRef(null)
+  const stickyBgRef    = useRef(null)   // fadeable black backdrop inside sticky
   const cardRefs       = useRef([])
-  const exitTextRef    = useRef(null)
+  const exitText1Ref   = useRef(null)   // "STORY & BRAND" block
+  const exitText2Ref   = useRef(null)   // "WE ARE ACE" block
+  const extraCardRefs  = useRef([])
   const spreadDoneRef  = useRef(false)
   const exitActiveRef  = useRef(false)
   const carouselOffRef = useRef(0)
@@ -220,103 +279,167 @@ export default function Spread() {
       },
     })
 
-    // ── Exit transition (700 → 1100 vh) ──────────────────────────────────
-    const exitTextEl = exitTextRef.current
+    // ── Fall phase (700 → 1500 vh) ───────────────────────────────────────
+    const t1El    = exitText1Ref.current
+    const t2El    = exitText2Ref.current
+    const extraEls = extraCardRefs.current.filter(Boolean)
 
-    const leftCards   = cards.slice(0, 4)   // indices 0-3 → fall left
-    const rightCards  = cards.slice(6)       // indices 6-9 → fall right
-    const centerCards = cards.slice(4, 6)   // indices 4-5 → fall down last
+    // Text block children (top-level elements, staggered on entrance)
+    const t1Words = Array.from(t1El.children)
+    const t2Words = Array.from(t2El.children)
 
-    // Absolute landing positions
-    const fallY      = FINAL_Y + vh * 1.5
-    const leftEndX   = leftCards.map((_, li) =>
-      finalX(li) - (vw * 1.0 + (3 - li) * 200)
-    )
-    const rightEndX  = rightCards.map((_, ri) =>
-      finalX(ri + 6) + (vw * 1.0 + ri * 200)
-    )
-
-    const exitTl = gsap.timeline({ paused: true })
-
-    // Stage tilts — "camera looks down" into the floor
-    exitTl.fromTo(stageRef.current,
-      { rotateX: 0 },
-      { rotateX: 26, transformOrigin: '50% 72%', ease: 'power1.inOut', duration: 0.55 },
-      0
-    )
-
-    // Left cards sweep lower-left, outermost first (from: 'start' → 0,1,2,3)
-    exitTl.fromTo(leftCards,
-      { x: (i) => finalX(i), y: FINAL_Y, rotateZ: 0, opacity: 1 },
-      {
-        x: (i) => leftEndX[i],
-        y: fallY,
-        rotateZ: (i) => -32 - (3 - i) * 16,
+    // Initialise extra cards: hidden, above viewport
+    EXTRA_DEFS.forEach((d, i) => {
+      if (!extraEls[i]) return
+      gsap.set(extraEls[i], {
+        x: d.sx * vw - CARD_W / 2,
+        y: d.sy * vh,
+        rotateZ: d.rotA,
         opacity: 0,
-        ease: 'power2.in',
-        duration: 0.62,
-        stagger: { amount: 0.14, from: 'start' },
-      },
-      0.06
-    )
+        scale: d.sc,
+        force3D: true,
+      })
+    })
 
-    // Right cards sweep lower-right, outermost first (from: 'end' → 9,8,7,6)
-    exitTl.fromTo(rightCards,
-      { x: (i) => finalX(i + 6), y: FINAL_Y, rotateZ: 0, opacity: 1 },
-      {
-        x: (i) => rightEndX[i],
-        y: fallY,
-        rotateZ: (i) => 32 + i * 16,
-        opacity: 0,
-        ease: 'power2.in',
-        duration: 0.62,
-        stagger: { amount: 0.14, from: 'end' },
-      },
-      0.06
-    )
+    // Initialise text blocks: containers hidden, children prepped
+    gsap.set([t1El, t2El], { opacity: 0 })
+    gsap.set([...t1Words, ...t2Words], { opacity: 0, y: 24 })
 
-    // Center cards fall straight down, latest
-    exitTl.fromTo(centerCards,
-      { y: FINAL_Y, opacity: 1 },
-      { y: FINAL_Y + vh * 2, opacity: 0, ease: 'power2.in', duration: 0.45 },
-      0.54
-    )
+    // ── Fall timeline — uses only `to` tweens for original cards so GSAP never
+    //   pre-applies a "from" state before the trigger fires.
+    //   `fromTo` with immediateRender:false is safe for text elements since they
+    //   are not animated by the main spread tl.
+    const fallTl = gsap.timeline({ paused: true })
 
-    // Title blooms in as center clears
-    exitTl.fromTo(exitTextEl,
-      { opacity: 0, scale: 0.88, y: 16 },
-      { opacity: 1, scale: 1,    y: 0,  ease: 'power2.out', duration: 0.42 },
-      0.36
-    )
+    // Left cards (0-3): fall + drift left
+    ;[0, 1, 2, 3].forEach((ci, li) => {
+      fallTl.to(cards[ci], {
+        x: vw * (0.01 + li * 0.055) - CARD_W * 0.2,
+        y: vh * (0.55 + li * 0.07),
+        rotateZ: -(18 + li * 14),
+        opacity: 0.80,
+        scale: 0.68,
+        ease: 'power1.in',
+        duration: 0.55,
+      }, 0.01 + li * 0.04)
+    })
 
-    // Title fades before Scene 4 takes over
-    exitTl.to(exitTextEl,
-      { opacity: 0, ease: 'power1.in', duration: 0.22 },
-      0.86
-    )
+    // Right cards (6-9): fall + drift right
+    ;[6, 7, 8, 9].forEach((ci, ri) => {
+      fallTl.to(cards[ci], {
+        x: vw * (0.70 + ri * 0.065) + CARD_W * 0.3,
+        y: vh * (0.55 + ri * 0.07),
+        rotateZ: 18 + ri * 14,
+        opacity: 0.80,
+        scale: 0.68,
+        ease: 'power1.in',
+        duration: 0.55,
+      }, 0.01 + ri * 0.04)
+    })
 
-    // Stage tilts back to flat as Scene 4 begins
-    exitTl.fromTo(stageRef.current,
-      { rotateX: 26 },
-      { rotateX: 0, ease: 'power1.inOut', duration: 0.38 },
+    // Center cards (4, 5): fall straight down — clears middle for text
+    fallTl.to(cards[4], { x: finalX(4) - 50, y: vh * 1.35, rotateZ: -10, opacity: 0, ease: 'power2.in', duration: 0.62 }, 0.16)
+    fallTl.to(cards[5], { x: finalX(5) + 50, y: vh * 1.35, rotateZ:  10, opacity: 0, ease: 'power2.in', duration: 0.62 }, 0.20)
+
+    // Extra cards materialise from above and land on sides
+    EXTRA_DEFS.forEach((d, i) => {
+      if (!extraEls[i]) return
+      fallTl.to(extraEls[i], {
+        x: d.ex * vw - CARD_W / 2,
+        y: d.ey * vh,
+        rotateZ: d.rotB,
+        opacity: 0.82,
+        scale: d.sc,
+        ease: 'power1.in',
+        duration: 0.50,
+      }, d.delay)
+    })
+
+    // ── Text block 1 — "STORY & BRAND"  (appears ~0.28, exits ~0.68) ──
+    // Container flips visible, then each child staggers up from below.
+    // Wave 1 extra cards are raining during this window.
+    fallTl.set(t1El, { opacity: 1 }, 0.29)
+    fallTl.fromTo(t1Words,
+      { immediateRender: false, opacity: 0, y: 24 },
+      { opacity: 1, y: 0, ease: 'power2.out', duration: 0.12, stagger: 0.04 },
+      0.30
+    )
+    // Exit: fade + gentle lift
+    fallTl.to(t1El, { opacity: 0, ease: 'power1.in', duration: 0.10 }, 0.68)
+
+    // ── Text block 2 — "WE ARE ACE"  (appears ~0.74, exits ~1.18) ──
+    // Wave 2 extra cards are surging hard during this window — spectacular density.
+    fallTl.set(t2El, { opacity: 1 }, 0.75)
+    fallTl.fromTo(t2Words,
+      { immediateRender: false, opacity: 0, y: 24 },
+      { opacity: 1, y: 0, ease: 'power2.out', duration: 0.12, stagger: 0.05 },
       0.76
     )
+    // Exit: fade — wave 2 cards continue raining after text disappears
+    fallTl.to(t2El, { opacity: 0, ease: 'power1.in', duration: 0.10 }, 1.18)
 
-    const exitSt = ScrollTrigger.create({
-      trigger:   sectionRef.current,
-      start:     () => `top+=${vh * 7} top`,
-      end:       () => `top+=${vh * 11} top`,
-      scrub:     1.5,
-      animation: exitTl,
-      onEnter:     () => { exitActiveRef.current = true;  setIsExitActive(true)  },
+    const fallSt = ScrollTrigger.create({
+      trigger:            sectionRef.current,
+      start:              () => `top+=${vh * 7} top`,
+      end:                () => `top+=${vh * 15} top`,   // 800px of scroll for two text windows
+      scrub:              1.5,
+      animation:          fallTl,
+      invalidateOnRefresh: true,
+      onEnter: () => {
+        // Snap cards to spread positions and reset extras above viewport,
+        // then invalidate so `to` tweens re-capture "from" from these values
+        cards.forEach((c, i) => gsap.set(c, {
+          x: finalX(i), y: FINAL_Y,
+          scale: scaleFor(Math.abs(i - CENTER)),
+          rotateZ: 0, opacity: 1,
+        }))
+        EXTRA_DEFS.forEach((d, i) => {
+          if (!extraEls[i]) return
+          gsap.set(extraEls[i], {
+            x: d.sx * vw - CARD_W / 2, y: d.sy * vh,
+            rotateZ: d.rotA, opacity: 0, scale: d.sc,
+          })
+        })
+        // Reset text blocks to initial hidden state so fromTo re-captures correctly
+        gsap.set([t1El, t2El], { opacity: 0, y: 0 })
+        gsap.set([...t1Words, ...t2Words], { opacity: 0, y: 24 })
+        fallTl.invalidate()
+        carouselOffRef.current = 0
+        focusIdxRef.current    = CENTER
+        setFocusIdx(CENTER)
+        exitActiveRef.current  = true
+        setIsExitActive(true)
+      },
       onLeaveBack: () => { exitActiveRef.current = false; setIsExitActive(false) },
+    })
+
+    // ── Fade-out phase (1500 → 1700 vh) — Scene 4 floats up into view ────────
+    // No camera tilt — just a clean dissolve so the RoyalFlush section beneath
+    // reveals itself naturally as the user scrolls past.
+    const fadeTl = gsap.timeline({ paused: true })
+
+    // Black sticky backdrop fades → Scene 4 (behind, lower z-index) shows through
+    fadeTl.to(stickyBgRef.current,  { opacity: 0, ease: 'power1.inOut', duration: 0.80 }, 0)
+    // Stage (all cards) dissolves simultaneously
+    fadeTl.to(stageRef.current,     { opacity: 0, ease: 'power1.inOut', duration: 0.80 }, 0)
+    // Belt-and-suspenders: ensure text blocks are gone too
+    fadeTl.to([t1El, t2El],         { opacity: 0, ease: 'power1.in',    duration: 0.30 }, 0)
+
+    const fadeSt = ScrollTrigger.create({
+      trigger:   sectionRef.current,
+      start:     () => `top+=${vh * 15} top`,
+      end:       () => `top+=${vh * 17} top`,
+      scrub:     1.5,
+      animation: fadeTl,
     })
 
     return () => {
       st.kill()
       tl.kill()
-      exitSt.kill()
-      exitTl.kill()
+      fallSt.kill()
+      fallTl.kill()
+      fadeSt.kill()
+      fadeTl.kill()
       cancelAnimationFrame(rafId)
       stage.removeEventListener('pointerdown',   onDown)
       stage.removeEventListener('pointermove',   onMove)
@@ -329,10 +452,17 @@ export default function Spread() {
 
   return (
     <section ref={sectionRef} id="spread" className="sp">
-      <div className="sp__sticky">
+      <div ref={stickyRef} className="sp__sticky">
 
-        {/* Watermark */}
-        <div className="sp__watermark">
+        {/* Black backdrop — animated to transparent so Scene 4 can show through */}
+        <div ref={stickyBgRef} className="sp__bg" aria-hidden="true" />
+
+        {/* Watermark — hidden once falling-card phase begins so it doesn't
+             compete with the STORY & BRAND / WE ARE ACE text blocks */}
+        <div
+          className="sp__watermark"
+          style={{ opacity: isExitActive ? 0 : 1, transition: 'opacity 0.55s ease' }}
+        >
           <p className="sp__wm-scene">SCENE III</p>
           <h2 className="sp__wm-title">THE SPREAD</h2>
         </div>
@@ -374,6 +504,21 @@ export default function Spread() {
               </div>
             </div>
           ))}
+
+          {/* Visual-magic extra falling cards */}
+          {EXTRA_DEFS.map((d, i) => (
+            <div
+              key={`xcard-${i}`}
+              ref={el => { extraCardRefs.current[i] = el }}
+              className={`sp__card${d.isRed ? ' is-red' : ''}`}
+              style={{ pointerEvents: 'none' }}
+            >
+              <div className="sp__card-back">
+                <div className="sp__card-back-pattern" />
+                <span className={`sp__card-back-suit${d.isRed ? ' is-red' : ''}`}>{d.suit}</span>
+              </div>
+            </div>
+          ))}
         </div>
 
         {/* Drag hint */}
@@ -381,10 +526,19 @@ export default function Spread() {
           ← &nbsp;DRAG TO EXPLORE&nbsp; →
         </p>
 
-        {/* Exit transition title — revealed as cards sweep away */}
-        <div ref={exitTextRef} className="sp__exit-text">
-          <p className="sp__exit-scene">SCENE IV</p>
-          <h2 className="sp__exit-title">THE ACE</h2>
+        {/* Text block 1 — "STORY & BRAND": appears as cards rain and centre clears */}
+        <div ref={exitText1Ref} className="sp__exit-text">
+          <p className="sp__exit-scene">ARA STUDIO</p>
+          <h2 className="sp__exit-title">STORY<br />&amp; BRAND</h2>
+          <div className="sp__exit-divider" />
+          <p className="sp__exit-sub">WE CRAFT EXPERIENCE</p>
+        </div>
+
+        {/* Text block 2 — "WE ARE ACE": appears amid wave-2 card surge */}
+        <div ref={exitText2Ref} className="sp__exit-text">
+          <p className="sp__exit-scene">OUR CORE</p>
+          <h2 className="sp__exit-title">WE ARE ACE</h2>
+          <div className="sp__exit-divider" />
           <p className="sp__exit-sub">ALL ROUND ACE STUDIO</p>
         </div>
 

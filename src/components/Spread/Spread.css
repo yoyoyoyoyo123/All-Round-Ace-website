@@ -5,8 +5,18 @@
 .sp {
   position: relative;
   width: 100vw;
-  height: 1100vh;
+  height: 1800vh;
+  /* no background — the black comes from .sp__bg inside the sticky so it
+     can be animated away when Scene 4 needs to reveal from behind */
+}
+
+/* Fadeable black backdrop — only element in sticky that provides the dark bg */
+.sp__bg {
+  position: absolute;
+  inset: 0;
   background: var(--color-black);
+  z-index: 0;
+  pointer-events: none;
 }
 
 .sp__sticky {
@@ -245,6 +255,18 @@
   font-size: clamp(0.58rem, 0.8vw, 0.76rem);
   letter-spacing: 0.50em;
   color: rgba(255, 255, 255, 0.22);
-  margin-top: 1.2rem;
+  margin-top: 1.4rem;
   white-space: nowrap;
+}
+
+.sp__exit-divider {
+  width: 2.4rem;
+  height: 1px;
+  background: rgba(204, 0, 0, 0.45);
+  margin: 1.0rem auto 0;
+}
+
+/* word-level stagger helper */
+.sp__exit-word {
+  display: inline-block;
 }
