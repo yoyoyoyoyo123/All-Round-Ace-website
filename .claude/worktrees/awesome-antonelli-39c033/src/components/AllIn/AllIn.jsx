@@ -22,7 +22,7 @@ const COIN_DEFS = Array.from({ length: N_COINS }, () => {
   const ex      = 0.01 + _rnd() * 0.98
   const ey      = 0.02 + _rnd() * 0.96
   const sx      = Math.max(0.01, Math.min(0.99, ex + (_rnd() - 0.5) * 0.25))
-  const sy      = 1.08 + _rnd() * 0.70
+  const sy      = 0.78 + _rnd() * 0.44   // 0.78–1.22: most coins at bottom edge, some just below fold
   return {
     useSide,
     mirror,
@@ -108,11 +108,12 @@ function ContactModal({ onClose }) {
 //  AllIn — Scene 5: ALL IN (contact)
 // ─────────────────────────────────────────────────────────────────────────────
 export default function AllIn() {
-  const sectionRef = useRef(null)
-  const stickyRef  = useRef(null)
-  const stageRef   = useRef(null)
-  const coinRefs   = useRef([])
-  const contentRef = useRef(null)
+  const sectionRef  = useRef(null)
+  const stickyRef   = useRef(null)
+  const stageRef    = useRef(null)
+  const coinRefs    = useRef([])
+  const contentRef  = useRef(null)
+  const overlayRef  = useRef(null)
   const [modalOpen, setModalOpen] = useState(false)
 
   useEffect(() => {
@@ -122,7 +123,7 @@ export default function AllIn() {
     // Inject scroll height
     sectionRef.current.style.height = `${(SCROLL_VH + 2) * vh}px`
 
-    // Init coin positions (all below viewport, opacity 0)
+    // Init coin positions — start at bottom-edge area, partially visible
     coinRefs.current.forEach((el, i) => {
       const d = COIN_DEFS[i]
       gsap.set(el, {
@@ -130,11 +131,12 @@ export default function AllIn() {
         y:       d.sy * vh,
         rotateZ: d.rotA,
         scaleX:  d.mirror ? -1 : 1,
-        opacity: 0,
+        opacity: 0.45,
       })
     })
 
-    // Init content
+    // Init overlay + content
+    gsap.set(overlayRef.current, { opacity: 0 })
     gsap.set(contentRef.current, { opacity: 0, y: 18 })
 
     // Build timeline
@@ -153,13 +155,20 @@ export default function AllIn() {
       }, d.delay * 0.80)
     })
 
+    // Overlay fades in: 0 → 1 over first third, sealing the background to black
+    tl.to(overlayRef.current, {
+      opacity:  1,
+      duration: 0.30,
+      ease:     'power2.in',
+    }, 0.05)
+
     // Content fade in
     tl.to(contentRef.current, {
       opacity:  1,
       y:        0,
       duration: 0.5,
       ease:     'power2.out',
-    }, 0.35)
+    }, 0.38)
 
     const st = ScrollTrigger.create({
       trigger:   sectionRef.current,
@@ -207,8 +216,8 @@ export default function AllIn() {
             ))}
           </div>
 
-          {/* Dark overlay */}
-          <div className="ai__overlay" aria-hidden="true" />
+          {/* Dark overlay — fades in via GSAP to avoid crushing early coin visibility */}
+          <div ref={overlayRef} className="ai__overlay" aria-hidden="true" />
 
           {/* Content */}
           <div ref={contentRef} className="ai__content">

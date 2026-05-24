@@ -14,16 +14,28 @@
   height: 100vh;
   width: 100%;
   overflow: hidden;
-  background: var(--color-black);
+  /* No opaque bg — RoyalFlush shows through until GSAP overlay fades in */
+  background: transparent;
 }
 
-/* ── Coin stage ──────────────────────────────── */
+/* ── Black background cover (under coins) ───── */
+/* Animates 0 → 1 opacity via GSAP, sealing the RoyalFlush background */
+
+.ai__overlay {
+  position: absolute;
+  inset: 0;
+  background: #0a0a0a;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* ── Coin stage (above bg cover) ─────────────── */
 
 .ai__stage {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  z-index: 1;
+  z-index: 2;
 }
 
 .ai__coin {
@@ -36,17 +48,7 @@
   will-change: transform;
   filter:
     drop-shadow(0 8px 20px rgba(0, 0, 0, 0.65))
-    drop-shadow(0 0 12px rgba(204, 0, 0, 0.30));
-}
-
-/* ── Dark overlay ────────────────────────────── */
-
-.ai__overlay {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.56);
-  z-index: 2;
-  pointer-events: none;
+    drop-shadow(0 0 12px rgba(204, 0, 0, 0.45));
 }
 
 /* ── Content ─────────────────────────────────── */

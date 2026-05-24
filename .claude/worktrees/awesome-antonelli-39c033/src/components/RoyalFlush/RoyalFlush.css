@@ -1,0 +1,290 @@
+/* =============================================
+   Scene 4: THE ACE — About
+   ============================================= */
+
+.rf {
+  position: relative;
+  width: 100vw;
+  min-height: 100vh;
+  background: var(--color-black);
+}
+
+/* Will become position:sticky once scroll-transition is wired up */
+.rf__sticky {
+  position: relative;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Bottom-to-black gradient — bridges S4 → S5 ── */
+.rf__sticky::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 45%;
+  background: linear-gradient(to bottom, transparent 0%, rgba(10, 10, 10, 0.72) 55%, #0a0a0a 100%);
+  pointer-events: none;
+  z-index: 20;
+}
+
+/* ── Watermark ───────────────────────────────── */
+
+.rf__watermark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.rf__wm-scene {
+  font-family: var(--font-heading);
+  font-size: clamp(0.65rem, 0.85vw, 0.82rem);
+  letter-spacing: 0.5em;
+  color: rgba(204, 0, 0, 0.35);
+  margin-bottom: 0.4rem;
+}
+
+.rf__wm-title {
+  font-family: var(--font-heading);
+  font-size: clamp(5rem, 10vw, 13rem);
+  line-height: 0.85;
+  color: rgba(255, 255, 255, 0.03);
+  letter-spacing: 0.05em;
+}
+
+/* ── Scattered background cards ─────────────── */
+
+.rf__bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.rf__bg-card {
+  position: absolute;
+  width:  165px;
+  height: 248px;
+  border-radius: var(--radius-card);
+  transform-origin: center center;
+}
+
+.rf__bg-card-inner {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-card);
+  background: linear-gradient(150deg, #040d1f 0%, #0b0b0b 100%);
+  border: 1px solid rgba(30, 60, 140, 0.28);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rf__bg-card.is-red .rf__bg-card-inner {
+  background: linear-gradient(150deg, #180606 0%, #0b0b0b 100%);
+  border-color: rgba(140, 30, 30, 0.24);
+}
+
+.rf__bg-card-pattern {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 9px,
+    rgba(30, 60, 140, 0.042) 9px,
+    rgba(30, 60, 140, 0.042) 10px
+  );
+}
+
+.rf__bg-card.is-red .rf__bg-card-pattern {
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 9px,
+    rgba(140, 30, 30, 0.042) 9px,
+    rgba(140, 30, 30, 0.042) 10px
+  );
+}
+
+.rf__bg-card-suit {
+  position: relative;
+  font-size: 3.2rem;
+  color: rgba(30, 60, 140, 0.14);
+  user-select: none;
+  line-height: 1;
+}
+
+.rf__bg-card.is-red .rf__bg-card-suit {
+  color: rgba(140, 30, 30, 0.14);
+}
+
+/* ── Member card row ─────────────────────────── */
+
+.rf__members {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+/* ── Individual member (face-up) card ───────── */
+
+.rf__member {
+  position: relative;
+  width:  185px;
+  height: 278px;
+  border-radius: var(--radius-card);
+  background: #0a0a12;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  overflow: hidden;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    transform    0.38s var(--ease-out),
+    border-color 0.38s ease,
+    box-shadow   0.38s ease;
+}
+
+.rf__member.is-hovered {
+  transform: translateY(-14px) scale(1.04);
+  border-color: rgba(255, 255, 255, 0.32);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.12),
+    0 0 28px rgba(255, 255, 255, 0.07),
+    0 20px 48px rgba(0, 0, 0, 0.65);
+  z-index: 20;
+}
+
+.rf__member.is-red.is-hovered {
+  border-color: rgba(204, 0, 0, 0.52);
+  box-shadow:
+    0 0 0 1px rgba(204, 0, 0, 0.22),
+    0 0 28px rgba(204, 0, 0, 0.10),
+    0 20px 48px rgba(0, 0, 0, 0.65);
+}
+
+/* ── Portrait face — fills entire card ────────── */
+
+.rf__member-face {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.rf__member-face-scanlines {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.18) 2px,
+    rgba(0, 0, 0, 0.18) 4px
+  );
+  pointer-events: none;
+}
+
+/* ── Centered ace.png watermark ──────────────── */
+
+.rf__member-ace {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 56px;
+  height: auto;
+  opacity: 0.22;
+  pointer-events: none;
+  z-index: 4;
+  user-select: none;
+}
+
+/* ── Info overlay (transparent bg, text only) ── */
+
+.rf__member-info {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: transparent;
+  padding: 0.5rem 0.62rem 0.58rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 0.18rem;
+  z-index: 5;
+}
+
+.rf__member-role {
+  font-family: var(--font-heading);
+  font-size: 0.50rem;
+  letter-spacing: 0.36em;
+  color: rgba(204, 0, 0, 0.72);
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.rf__member-name {
+  font-family: var(--font-heading);
+  font-size: 1.22rem;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.88);
+  line-height: 1;
+}
+
+.rf__member-title {
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: 0.66rem;
+  color: rgba(255, 255, 255, 0.32);
+  letter-spacing: 0.04em;
+}
+
+.rf__member-skills {
+  display: flex;
+  gap: 0.28rem;
+  flex-wrap: wrap;
+  margin-top: 0.14rem;
+}
+
+.rf__member-skill {
+  font-family: var(--font-heading);
+  font-size: 0.44rem;
+  letter-spacing: 0.20em;
+  color: rgba(255, 255, 255, 0.26);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  padding: 0.10rem 0.28rem;
+  border-radius: 2px;
+}
+
+/* ── Footer ──────────────────────────────────── */
+
+.rf__footer {
+  position: absolute;
+  bottom: clamp(1.5rem, 3vh, 2.5rem);
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.rf__footer-label {
+  font-family: var(--font-heading);
+  font-size: clamp(0.52rem, 0.65vw, 0.62rem);
+  letter-spacing: 0.48em;
+  color: rgba(255, 255, 255, 0.14);
+  white-space: nowrap;
+}
