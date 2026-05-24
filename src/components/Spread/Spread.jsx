@@ -451,8 +451,8 @@ export default function Spread() {
   const work = WORKS[focusIdx]
 
   return (
-    <section ref={sectionRef} id="spread" className="sp">
-      <div ref={stickyRef} className="sp__sticky">
+    <section ref={sectionRef} id="spread" className="sp" style={{ pointerEvents: 'none' }}>
+      <div ref={stickyRef} className="sp__sticky" style={{ pointerEvents: 'none' }}>
 
         {/* Black backdrop — animated to transparent so Scene 4 can show through */}
         <div ref={stickyBgRef} className="sp__bg" aria-hidden="true" />
@@ -476,11 +476,14 @@ export default function Spread() {
           </div>
         </div>
 
-        {/* Card stage */}
+        {/* Card stage — pointer events only active during carousel drag phase */}
         <div
           ref={stageRef}
           className="sp__stage"
-          style={{ cursor: isDone ? 'grab' : 'default' }}
+          style={{
+            cursor: isDone ? 'grab' : 'default',
+            pointerEvents: isDone && !isExitActive ? 'auto' : 'none',
+          }}
         >
           {WORKS.map((w, i) => (
             <div

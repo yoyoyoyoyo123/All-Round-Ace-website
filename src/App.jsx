@@ -41,7 +41,7 @@ export default function App() {
             <RoyalFlush />
           </div>
           {/* Scene 3 — on top (z:2), scrolls normally, fades its own black bg at exit */}
-          <div style={{ position: 'relative', zIndex: 2, marginTop: '-100vh' }}>
+          <div style={{ position: 'relative', zIndex: 2, marginTop: '-100vh', pointerEvents: 'none' }}>
             <Spread />
           </div>
         </div>
