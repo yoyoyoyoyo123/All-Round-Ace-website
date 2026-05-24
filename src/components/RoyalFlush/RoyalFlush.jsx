@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import './RoyalFlush.css'
-import AceImg from '../../assets/ace.png'
+import AceImg      from '../../assets/ace.png'
+import CardbackImg from '../../assets/Cardback.png'
 
 // ── Member data (placeholder — swap real names/images later) ─────────────────
 const MEMBERS = [
@@ -97,10 +98,7 @@ export default function RoyalFlush() {
                 zIndex:    c.z,
               }}
             >
-              <div className="rf__bg-card-inner">
-                <div className="rf__bg-card-pattern" />
-                <span className="rf__bg-card-suit">{c.suit}</span>
-              </div>
+              <img src={CardbackImg} className="rf__bg-card-img" alt="" draggable={false} />
             </div>
           ))}
         </div>

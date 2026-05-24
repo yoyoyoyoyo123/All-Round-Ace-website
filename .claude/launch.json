@@ -5,7 +5,8 @@
       "name": "ara-main",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
-      "port": 5174
+      "cwd": "C:\\Users\\IAA USER\\Desktop\\ARAWebsite\\All-Round-Ace-website",
+      "port": 5173
     }
   ]
 }
