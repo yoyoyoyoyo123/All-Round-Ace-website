@@ -13,6 +13,16 @@ import SpadeImg    from '../../assets/4suits/spade.svg'
 import HeartImg    from '../../assets/4suits/heart.svg'
 import DiamondImg  from '../../assets/4suits/diamond.svg'
 import ClubImg     from '../../assets/4suits/club.svg'
+import S2Img1  from '../../assets/section2img/1.jpg'
+import S2Img2  from '../../assets/section2img/2.jpg'
+import S2Img3  from '../../assets/section2img/3.jpg'
+import S2Img4  from '../../assets/section2img/4.jpg'
+import S2Img5  from '../../assets/section2img/5.jpg'
+import S2Img6  from '../../assets/section2img/6.jpg'
+import S2Img7  from '../../assets/section2img/7.jpg'
+import S2Img8  from '../../assets/section2img/8.jpg'
+import S2Img9  from '../../assets/section2img/9.jpg'
+import S2Img10 from '../../assets/section2img/10.jpg'
 
 const SUIT_IMG = { '♠': SpadeImg, '♥': HeartImg, '♦': DiamondImg, '♣': ClubImg }
 
@@ -24,30 +34,40 @@ const PANELS = [
     title: 'ARA Studio', sub: 'BRAND CORE · 品牌核心',
     desc: '當科技能夠感受情緒，當藝術能夠被精準運算——這就是 All Round Ace Studio 存在的理由。我們打破理性工程與感性體驗之間的界線，創造真正能與人對話的互動體驗。',
     tags: ['INTERACTIVE EXPERIENCE', 'CROSS-DISCIPLINARY', 'FULL-STACK CREATIVE'],
+    imgs: [S2Img1, S2Img2],
+    imgLabels: ['CREATIVE CORE', 'THE STUDIO'],
   },
   {
     id: 'spade', rank: 'A', suit: '♠', isRed: false, isJoker: false,
     title: 'Interactive Installation', sub: '互動裝置',
     desc: "Spaces that respond to presence. Environments that blur the digital and the physical — you don't just see them, you inhabit them.",
     tags: ['SENSORS', 'REAL-TIME', 'PHYSICAL COMPUTING'],
+    imgs: [S2Img3, S2Img4],
+    imgLabels: ['SENSOR SPACE', 'LIVE SIGNAL'],
   },
   {
     id: 'heart', rank: 'K', suit: '♥', isRed: true, isJoker: false,
     title: 'Software Development', sub: '軟體開發',
     desc: 'From embedded firmware to full-stack web — precision-engineered software that feels as good as it performs.',
     tags: ['FULL-STACK', 'EMBEDDED', 'WEB & MOBILE'],
+    imgs: [S2Img5, S2Img6],
+    imgLabels: ['SYSTEM LAYER', 'CODE RUNS DEEP'],
   },
   {
     id: 'diamond', rank: 'Q', suit: '♦', isRed: true, isJoker: false,
     title: 'Game Development', sub: '遊戲開發',
     desc: 'Rules exist to be rewritten. We design worlds with consequence — every choice matters, every player is the protagonist.',
     tags: ['UNITY', 'UNREAL', 'CUSTOM ENGINE'],
+    imgs: [S2Img7, S2Img8],
+    imgLabels: ['WORLD DESIGN', 'PLAYER ZERO'],
   },
   {
     id: 'club', rank: 'J', suit: '♣', isRed: false, isJoker: false,
     title: 'Art Installation', sub: '藝術裝置',
     desc: 'Light, form, and material become language. We sculpt space into statements — work that demands presence.',
     tags: ['GENERATIVE', 'LIGHT & SPACE', 'SCULPTURAL'],
+    imgs: [S2Img9, S2Img10],
+    imgLabels: ['FORM & VOID', 'LIGHT SCULPT'],
   },
 ]
 
@@ -80,9 +100,15 @@ export default function DealSuits() {
   const cardRefs    = useRef([])     // Scene 2 deal card backs
   const panelElRefs = useRef([])     // ds__panel elements
   const panelsRef   = useRef(null)   // ds__panels container
-  const landingRef  = useRef(null)   // landing image layer
-  const expandedRef = useRef(false)
-  const trCardRefs  = useRef([])     // 14 transition cards
+  const landingRef   = useRef(null)   // landing image layer
+  const sloganRef         = useRef(null)   // ring-phase centre slogan
+  const sloganBdRef       = useRef(null)   // full-screen fog backdrop
+  const ringBgRef         = useRef(null)   // ring-phase background layer
+  const canvasRef         = useRef(null)   // Matrix stream canvas
+  const canvasRafRef      = useRef(null)   // requestAnimationFrame id
+  const canvasMouseRef    = useRef(null)   // mousemove cleanup fn
+  const expandedRef  = useRef(false)
+  const trCardRefs   = useRef([])     // 14 transition cards
   const [hovered, setHovered] = useState(null)
 
   useEffect(() => {
@@ -110,8 +136,8 @@ export default function DealSuits() {
     // vh-based radii guarantee the ring is always fully visible regardless of aspect ratio.
     // (RING_CY is separate from TR_CY so the collapse pile still lands at Spread's coords.)
     const RING_CY = vh * 0.46        // slightly above centre so enlarged rings still fit
-    const INNER_R = vh * 0.24        // was 0.18 — bigger inner ring, no overlap at 6 cards
-    const OUTER_R = vh * 0.42        // was 0.32 — generous outer ring, cards well-spaced
+    const INNER_R = vh * 0.52        // pushed outward to open centre space for slogan
+    const OUTER_R = vh * 0.82        // outer cards mostly off-screen — maximum tension
 
     // Pre-compute clockwise ring target positions (0 = top, increase = CW)
     // Uses RING_CY (vh*0.50) so the full ring fits within the viewport
@@ -333,8 +359,139 @@ export default function DealSuits() {
     // ══════════════════════════════════════════════════════════════════════
     let rotationTickerFn = null
 
+    // ── Ring-bg: card-matrix canvas stream ────────────────────────────────────
+    const STREAM_CHARS = ['A','K','Q','J','10','9','8','7','6','5','4','3','2','♠','♥','♦','♣']
+
+    const startRingBg = () => {
+      if (canvasRafRef.current) return
+      const canvas = canvasRef.current
+      if (!canvas) return
+      canvas.width  = vw
+      canvas.height = vh
+      const ctx    = canvas.getContext('2d')
+      const FS     = 14        // font size px — larger = more legible
+      const COL_W  = 22        // column width px
+      const cols   = Math.ceil(vw / COL_W)
+      const INTERACT_R = 150  // mouse repulsion radius px
+
+      // Track mouse position (local to this canvas session)
+      let mX = -9999, mY = -9999
+      const onMouse = e => { mX = e.clientX; mY = e.clientY }
+      window.addEventListener('mousemove', onMouse)
+      canvasMouseRef.current = () => window.removeEventListener('mousemove', onMouse)
+
+      const streams = Array.from({ length: cols }, () => {
+        const base = 0.04 + Math.random() * 0.07   // slow: ~33–88 px/s at 60fps
+        return {
+          y:        -Math.floor(Math.random() * 60),
+          speed:    base,
+          baseSpeed: base,
+          len:      9 + Math.floor(Math.random() * 18),
+          chars:    Array.from({ length: 26 }, () =>
+            STREAM_CHARS[Math.floor(Math.random() * STREAM_CHARS.length)]
+          ),
+          offsetX: 0,   // horizontal displacement from mouse repulsion
+          chaos:   0,   // 0–1: how scrambled (character randomness + colour flash)
+        }
+      })
+
+      ctx.font = `${FS}px "Courier New", monospace`
+
+      const draw = () => {
+        // Fade trail — lower = longer ghost; ~0.05 gives nice trails
+        ctx.fillStyle = 'rgba(0,0,0,0.055)'
+        ctx.fillRect(0, 0, vw, vh)
+        ctx.font = `${FS}px "Courier New", monospace`
+
+        streams.forEach((s, ci) => {
+          // ── Mouse repulsion ──
+          const colX = ci * COL_W + s.offsetX
+          const colY = s.y * FS
+          const dist = Math.hypot(colX - mX, colY - mY)
+
+          if (dist < INTERACT_R && dist > 0) {
+            const force  = (1 - dist / INTERACT_R)          // 0–1
+            const angle  = Math.atan2(colX - mX, colY - mY) // direction away from mouse
+            s.offsetX   += Math.sin(angle) * force * 22
+            s.chaos      = Math.min(1, s.chaos + force * 0.30)
+            s.speed      = s.baseSpeed + force * 0.30        // speed burst
+          }
+
+          // ── Damping: slowly return to normal ──
+          s.offsetX = s.offsetX * 0.88                       // spring back
+          s.chaos   = Math.max(0, s.chaos - 0.012)           // calm down over ~80 frames
+          s.speed   = s.speed   * 0.93 + s.baseSpeed * 0.07 // ease back to base speed
+          s.offsetX = Math.max(-COL_W * 10, Math.min(COL_W * 10, s.offsetX)) // clamp
+
+          const x = ci * COL_W + 3 + s.offsetX
+
+          // ── Draw character trail ──
+          for (let j = 0; j < s.len; j++) {
+            const py = (Math.floor(s.y) - j) * FS
+            if (py < -FS || py > vh + FS) continue
+
+            // Scramble chars while chaotic
+            const char = s.chaos > 0.25
+              ? STREAM_CHARS[Math.floor(Math.random() * STREAM_CHARS.length)]
+              : s.chars[(Math.floor(s.y) + j) % s.chars.length]
+
+            if (j === 0) {
+              // Leading char: bright, flashes whiter when chaotic
+              const g = s.chaos > 0.5 ? 200 : 110
+              ctx.fillStyle = `rgba(255,${g},${g},0.95)`
+            } else if (j === 1) {
+              ctx.fillStyle = 'rgba(220,45,45,0.72)'
+            } else {
+              ctx.fillStyle = `rgba(160,12,12,${Math.max(0, 0.52 - (j / s.len) * 0.50)})`
+            }
+            ctx.fillText(char, x, py)
+          }
+
+          // ── Advance stream ──
+          s.y += s.speed
+          if (s.y * FS > vh + s.len * FS) {
+            const nb   = 0.04 + Math.random() * 0.07
+            s.y        = -Math.floor(Math.random() * 35)
+            s.baseSpeed = nb
+            s.speed    = nb
+            s.len      = 9 + Math.floor(Math.random() * 18)
+            s.offsetX  = 0
+            s.chaos    = 0
+          }
+        })
+
+        canvasRafRef.current = requestAnimationFrame(draw)
+      }
+
+      draw()
+      gsap.to(ringBgRef.current, { opacity: 1, duration: 1.4, ease: 'power2.out' })
+
+      // Slogan: backdrop fades in first, then lines flip up
+      const reveals = sloganRef.current?.querySelectorAll('.ds__slogan-reveal')
+      if (reveals?.length) {
+        gsap.set(sloganRef.current, { opacity: 1 })
+        gsap.set(reveals, { y: '108%' })
+        gsap.to(sloganBdRef.current, { opacity: 1, duration: 1.0, ease: 'power2.out', delay: 0.3 })
+        gsap.to(reveals, { y: '0%', duration: 0.82, stagger: 0.28, ease: 'power3.out', delay: 0.8 })
+      }
+    }
+
+    const stopRingBg = () => {
+      if (canvasRafRef.current) {
+        cancelAnimationFrame(canvasRafRef.current)
+        canvasRafRef.current = null
+        const canvas = canvasRef.current
+        if (canvas) canvas.getContext('2d').clearRect(0, 0, vw, vh)
+      }
+      if (canvasMouseRef.current) {
+        canvasMouseRef.current()
+        canvasMouseRef.current = null
+      }
+    }
+
     const startRotation = () => {
       if (rotationTickerFn) return
+      startRingBg()
       rotationTickerFn = (_time, deltaTime) => {
         const dt = Math.min(deltaTime / 1000, 0.05)   // cap to avoid jumps on tab wake
         for (let i = 0; i < INNER_N; i++) {
@@ -366,6 +523,18 @@ export default function DealSuits() {
         gsap.ticker.remove(rotationTickerFn)
         rotationTickerFn = null
       }
+      // Slogan exit: lines slide down, backdrop lingers then fades
+      const reveals = sloganRef.current?.querySelectorAll('.ds__slogan-reveal')
+      if (reveals?.length) {
+        gsap.to(Array.from(reveals).reverse(), {
+          y: '108%', duration: 0.38, stagger: 0.08, ease: 'power2.in',
+        })
+      }
+      gsap.to(sloganBdRef.current, {
+        opacity: 0, duration: 0.55, ease: 'power2.in', delay: 0.42,
+        onComplete: () => { if (sloganRef.current) gsap.set(sloganRef.current, { opacity: 0 }) },
+      })
+      gsap.to(ringBgRef.current, { opacity: 0, duration: 0.9, ease: 'power2.in', onComplete: stopRingBg })
     }
 
     const p25st = ScrollTrigger.create({
@@ -538,6 +707,7 @@ export default function DealSuits() {
       if (p3st_dyn) p3st_dyn.kill()
       if (p3tl)     p3tl.kill()
       stopRotation()
+      stopRingBg()
       window.removeEventListener('mousemove', onMouseMove)
       window.removeEventListener('mouseleave', onMouseLeave)
     }
@@ -559,6 +729,30 @@ export default function DealSuits() {
           <img src={LImg}     className="ds__landing-left"   alt="" />
           <img src={RImg}     className="ds__landing-right"  alt="" />
           <img src={MdImg}    className="ds__landing-center" alt="" />
+        </div>
+
+        {/* ── Ring-phase centre slogan ── */}
+        <div ref={sloganBdRef} className="ds__slogan-backdrop" aria-hidden="true" />
+        <div ref={sloganRef} className="ds__slogan" aria-hidden="true">
+          <div className="ds__slogan-line-wrap">
+            <span className="ds__slogan-eyebrow ds__slogan-reveal">BRAND CORE</span>
+          </div>
+          <div className="ds__slogan-line-wrap">
+            <p className="ds__slogan-line ds__slogan-reveal">TECHNOLOGY THAT FEELS.</p>
+          </div>
+          <div className="ds__slogan-line-wrap">
+            <p className="ds__slogan-line ds__slogan-line--accent ds__slogan-reveal">ART THAT COMPUTES.</p>
+          </div>
+        </div>
+
+        {/* ── Ring-phase background — Matrix stream + ghost suits ── */}
+        <div ref={ringBgRef} className="ds__ring-bg" aria-hidden="true">
+          <canvas ref={canvasRef} className="ds__ring-canvas" />
+          <img src={SpadeImg}   className="ds__ring-suit ds__ring-suit--tl" alt="" draggable={false} />
+          <img src={HeartImg}   className="ds__ring-suit ds__ring-suit--tr" alt="" draggable={false} />
+          <img src={DiamondImg} className="ds__ring-suit ds__ring-suit--br" alt="" draggable={false} />
+          <img src={ClubImg}    className="ds__ring-suit ds__ring-suit--bl" alt="" draggable={false} />
+          <div className="ds__ring-glow" />
         </div>
 
         {/* ── Layer 1 (bottom): Scene 2 panels — always full-size ── */}
@@ -607,6 +801,31 @@ export default function DealSuits() {
                   {panel.tags.map(t => (
                     <span key={t} className="ds__panel-tag">{t}</span>
                   ))}
+                </div>
+              </div>
+
+              {/* ── Media block: diagonal-split images on the right ── */}
+              <div className="ds__panel-media" aria-hidden="true">
+                {/* Vertical meta strip — labels outside clip area */}
+                <div className="ds__pm-meta">
+                  <span className="ds__pm-label">{panel.imgLabels[0]}</span>
+                  <div className="ds__pm-meta-dot" />
+                  <span className="ds__pm-label">{panel.imgLabels[1]}</span>
+                </div>
+                {/* Image frames */}
+                <div className="ds__pm-frames">
+                  <div className="ds__pm-frame ds__pm-frame--top">
+                    <img src={panel.imgs[0]} className="ds__pm-img" alt="" draggable={false} />
+                    <div className="ds__pm-vignette" />
+                    <div className="ds__pm-grain" />
+                    <span className="ds__pm-index">01</span>
+                  </div>
+                  <div className="ds__pm-frame ds__pm-frame--bot">
+                    <img src={panel.imgs[1]} className="ds__pm-img" alt="" draggable={false} />
+                    <div className="ds__pm-vignette" />
+                    <div className="ds__pm-grain" />
+                    <span className="ds__pm-index">02</span>
+                  </div>
                 </div>
               </div>
               <div className="ds__panel-corner ds__panel-corner--br">

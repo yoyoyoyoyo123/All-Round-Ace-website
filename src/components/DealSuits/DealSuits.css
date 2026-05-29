@@ -77,6 +77,168 @@
   height: 36vh;
 }
 
+/* ═══════════════════════════════════════
+   RING-PHASE SLOGAN
+   ═══════════════════════════════════════ */
+
+.ds__slogan {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 25;
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  white-space: nowrap;
+}
+
+/* Full-screen fog backdrop — sits just below slogan text */
+.ds__slogan-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(4, 1, 1, 0.48);   /* dark, slight red undertone, ~50% opacity */
+  pointer-events: none;
+  z-index: 24;                        /* below slogan (25), above TC cards (18) */
+  opacity: 0;                         /* GSAP fades in/out */
+}
+
+/* Each line sits in an overflow:hidden container — masks the slide-up */
+.ds__slogan-line-wrap {
+  overflow: hidden;
+  line-height: 1.08;
+  position: relative;
+}
+
+.ds__slogan-eyebrow {
+  display: block;
+  font-family: var(--font-heading);
+  font-size: clamp(0.55rem, 0.8vw, 0.75rem);
+  letter-spacing: 0.55em;
+  color: rgba(204, 0, 0, 0.65);
+  margin-bottom: 1.4rem;
+  will-change: transform;
+}
+
+.ds__slogan-line {
+  display: block;
+  font-family: var(--font-heading);
+  font-size: clamp(2.8rem, 5.8vw, 7.5rem);
+  line-height: 0.96;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.90);
+  will-change: transform;
+  padding-bottom: 0.08em; /* prevent descender clip */
+}
+
+.ds__slogan-line--accent {
+  color: rgba(204, 0, 0, 0.88);
+}
+
+/* ═══════════════════════════════════════
+   RING-PHASE BACKGROUND
+   Card-matrix stream (canvas) + ghost suit symbols + central glow
+   ═══════════════════════════════════════ */
+
+.ds__ring-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.ds__ring-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* ── Ghost suit symbols — one per quadrant ── */
+.ds__ring-suit {
+  position: absolute;
+  width: 42vw;
+  height: auto;
+  user-select: none;
+  pointer-events: none;
+  /* black SVG → dark red ghost */
+  filter: brightness(0) saturate(100%) invert(12%) sepia(95%) saturate(6000%) hue-rotate(345deg) brightness(0.75);
+}
+
+.ds__ring-suit--tl {
+  top: -8%; left: -6%;
+  opacity: 0.08;
+  animation: ds-glitch-tl 11s infinite;
+}
+.ds__ring-suit--tr {
+  top: -6%; right: -8%;
+  opacity: 0.07;
+  animation: ds-glitch-tr 13s infinite 1.8s;
+}
+.ds__ring-suit--br {
+  bottom: -8%; right: -6%;
+  opacity: 0.08;
+  animation: ds-glitch-br 10s infinite 3.5s;
+}
+.ds__ring-suit--bl {
+  bottom: -6%; left: -8%;
+  opacity: 0.07;
+  animation: ds-glitch-bl 14s infinite 0.9s;
+}
+
+/* ── Per-suit glitch keyframes (clip-path slice + translate offset) ── */
+@keyframes ds-glitch-tl {
+  0%,  84%   { opacity: 0.08; clip-path: none;              transform: rotate(-14deg) translate(0,   0); }
+  85%         { opacity: 0.18; clip-path: inset(28% 0 42% 0); transform: rotate(-14deg) translate(-5px, 0); }
+  85.4%       { opacity: 0.05; clip-path: inset(55% 0 12% 0); transform: rotate(-14deg) translate( 4px, 0); }
+  85.8%       { opacity: 0.08; clip-path: none;              transform: rotate(-14deg) translate(0,   0); }
+  93%         { opacity: 0.14; clip-path: inset(10% 0 68% 0); transform: rotate(-14deg) translate(-3px, 1px); }
+  93.3%       { opacity: 0.08; clip-path: none;              transform: rotate(-14deg) translate(0,   0); }
+  100%        { opacity: 0.08; clip-path: none;              transform: rotate(-14deg) translate(0,   0); }
+}
+@keyframes ds-glitch-tr {
+  0%,  80%   { opacity: 0.07; clip-path: none;              transform: rotate(11deg)  translate(0,   0); }
+  81%         { opacity: 0.16; clip-path: inset(40% 0 30% 0); transform: rotate(11deg)  translate( 5px, 0); }
+  81.5%       { opacity: 0.04; clip-path: inset(62% 0  8% 0); transform: rotate(11deg)  translate(-3px, 0); }
+  82%         { opacity: 0.07; clip-path: none;              transform: rotate(11deg)  translate(0,   0); }
+  90%         { opacity: 0.13; clip-path: inset(15% 0 60% 0); transform: rotate(11deg)  translate( 4px,-1px); }
+  90.4%       { opacity: 0.07; clip-path: none;              transform: rotate(11deg)  translate(0,   0); }
+  100%        { opacity: 0.07; clip-path: none;              transform: rotate(11deg)  translate(0,   0); }
+}
+@keyframes ds-glitch-br {
+  0%,  76%   { opacity: 0.08; clip-path: none;              transform: rotate(-9deg)  translate(0,   0); }
+  77%         { opacity: 0.17; clip-path: inset(20% 0 55% 0); transform: rotate(-9deg)  translate( 6px, 0); }
+  77.5%       { opacity: 0.04; clip-path: inset(50% 0 18% 0); transform: rotate(-9deg)  translate(-4px, 0); }
+  78%         { opacity: 0.08; clip-path: none;              transform: rotate(-9deg)  translate(0,   0); }
+  88%         { opacity: 0.15; clip-path: inset( 5% 0 72% 0); transform: rotate(-9deg)  translate(-3px, 2px); }
+  88.4%       { opacity: 0.08; clip-path: none;              transform: rotate(-9deg)  translate(0,   0); }
+  100%        { opacity: 0.08; clip-path: none;              transform: rotate(-9deg)  translate(0,   0); }
+}
+@keyframes ds-glitch-bl {
+  0%,  82%   { opacity: 0.07; clip-path: none;              transform: rotate(17deg)  translate(0,   0); }
+  83%         { opacity: 0.15; clip-path: inset(35% 0 35% 0); transform: rotate(17deg)  translate(-6px, 0); }
+  83.5%       { opacity: 0.05; clip-path: inset(58% 0 10% 0); transform: rotate(17deg)  translate( 3px, 0); }
+  84%         { opacity: 0.07; clip-path: none;              transform: rotate(17deg)  translate(0,   0); }
+  94%         { opacity: 0.12; clip-path: inset(12% 0 65% 0); transform: rotate(17deg)  translate( 4px,-1px); }
+  94.4%       { opacity: 0.07; clip-path: none;              transform: rotate(17deg)  translate(0,   0); }
+  100%        { opacity: 0.07; clip-path: none;              transform: rotate(17deg)  translate(0,   0); }
+}
+
+/* ── Central radial glow — stage-light warmth ── */
+.ds__ring-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 60% 55% at 50% 46%,
+    rgba(110, 8, 8, 0.24)  0%,
+    rgba( 55, 4, 4, 0.10) 42%,
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
 /* ── Section: 500 vh scroll travel ── */
 .ds {
   position: relative;
@@ -412,5 +574,175 @@
   flex-shrink: 0;
   display: block;
   pointer-events: none;
+  user-select: none;
+}
+
+/* ═══════════════════════════════════════
+   PANEL MEDIA — diagonal-split image pair
+   ═══════════════════════════════════════ */
+
+/* ── Outer container ── */
+.ds__panel-media {
+  position: absolute;
+  right: clamp(1.8rem, 3vw, 4rem);
+  top: 50%;
+  transform: translateY(-50%) translateX(36px);
+  width: clamp(210px, 27vw, 370px);
+  height: clamp(340px, 70vh, 590px);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity   0.52s cubic-bezier(0.2, 0, 0, 1) 0.18s,
+    transform 0.52s cubic-bezier(0.2, 0, 0, 1) 0.18s;
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.ds__panel.is-hovered .ds__panel-media {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
+
+/* ── Vertical meta strip (left side, outside clip area) ── */
+.ds__pm-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  width: 14px;
+  flex-shrink: 0;
+  padding: 1.2rem 0;
+}
+
+.ds__pm-meta-dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  flex-shrink: 0;
+}
+.ds__panel.is-red   .ds__pm-meta-dot { background: rgba(204, 0, 0, 0.45); }
+.ds__panel.is-joker .ds__pm-meta-dot { background: rgba(201, 168, 76, 0.45); }
+
+/* ── Vertical label text ── */
+.ds__pm-label {
+  font-family: var(--font-heading);
+  font-size: 0.44rem;
+  letter-spacing: 0.36em;
+  color: rgba(255, 255, 255, 0.36);
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);   /* reads bottom → top */
+  white-space: nowrap;
+  user-select: none;
+}
+
+.ds__panel.is-red   .ds__pm-label { color: rgba(204,  0,   0, 0.60); }
+.ds__panel.is-joker .ds__pm-label { color: rgba(201, 168, 76, 0.60); }
+
+/* ── Frames wrapper ── */
+.ds__pm-frames {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* ── Individual frame ── */
+.ds__pm-frame {
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.ds__pm-frame--top {
+  flex: 0 0 58%;
+  clip-path: polygon(0 0, 100% 0, 100% 83%, 0 97%);
+}
+
+.ds__pm-frame--bot {
+  flex: 0 0 55%;
+  clip-path: polygon(0 17%, 100% 3%, 100% 100%, 0 100%);
+  margin-top: -13%;
+}
+
+/* ── Image fill ── */
+.ds__pm-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  user-select: none;
+  pointer-events: none;
+  transition: transform 0.6s ease;
+}
+.ds__pm-frame--top:hover .ds__pm-img,
+.ds__pm-frame--bot:hover .ds__pm-img {
+  transform: scale(1.04);
+}
+
+/* ── Vignette overlay ── */
+.ds__pm-vignette {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 50% 50%, transparent 30%, rgba(0,0,0,0.60) 100%),
+    linear-gradient(to bottom,
+      rgba(0,0,0,0.48) 0%,
+      transparent      26%,
+      transparent      68%,
+      rgba(0,0,0,0.65) 100%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.ds__panel.is-red .ds__pm-vignette {
+  background:
+    radial-gradient(ellipse at 50% 50%, transparent 30%, rgba(28,0,0,0.70) 100%),
+    linear-gradient(to bottom,
+      rgba(18,0,0,0.52) 0%,
+      transparent       26%,
+      transparent       68%,
+      rgba(18,0,0,0.70) 100%);
+}
+
+.ds__panel.is-joker .ds__pm-vignette {
+  background:
+    radial-gradient(ellipse at 50% 50%, transparent 30%, rgba(18,12,0,0.70) 100%),
+    linear-gradient(to bottom,
+      rgba(12,8,0,0.52) 0%,
+      transparent       26%,
+      transparent       68%,
+      rgba(12,8,0,0.70) 100%);
+}
+
+/* ── Scanline grain ── */
+.ds__pm-grain {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.08) 2px,
+    rgba(0,0,0,0.08) 4px
+  );
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* ── Frame index (top-right corner, inside clip-safe zone) ── */
+.ds__pm-index {
+  position: absolute;
+  top: 0.72rem;
+  right: 0.75rem;
+  font-family: var(--font-heading);
+  font-size: 0.50rem;
+  letter-spacing: 0.30em;
+  color: rgba(255, 255, 255, 0.26);
+  z-index: 5;
   user-select: none;
 }

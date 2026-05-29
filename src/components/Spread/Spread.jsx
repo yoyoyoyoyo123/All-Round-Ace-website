@@ -8,16 +8,16 @@ import CardbackImg  from '../../assets/Cardback.png'
 gsap.registerPlugin(ScrollTrigger)
 
 const WORKS = [
-  { id: 0, title: 'Resonance Wall',  medium: 'Interactive Installation', year: '2024', rank: 'A',  suit: '♠', isRed: false },
-  { id: 1, title: 'Echo Chamber',    medium: 'Sound · Light',            year: '2023', rank: 'K',  suit: '♥', isRed: true  },
-  { id: 2, title: 'Liminal',         medium: 'Video Installation',       year: '2023', rank: 'Q',  suit: '♦', isRed: true  },
-  { id: 3, title: 'Void Garden',     medium: 'Generative Art',           year: '2022', rank: 'J',  suit: '♣', isRed: false },
-  { id: 4, title: 'Phantom Grid',    medium: 'Mixed Reality',            year: '2024', rank: '10', suit: '♠', isRed: false },
-  { id: 5, title: 'Drift',           medium: 'Performance · Tech',       year: '2022', rank: '9',  suit: '♥', isRed: true  },
-  { id: 6, title: 'Tessera',         medium: 'Interactive Sculpture',    year: '2023', rank: '8',  suit: '♦', isRed: true  },
-  { id: 7, title: 'Signal / Noise',  medium: 'Web Experience',           year: '2024', rank: '7',  suit: '♣', isRed: false },
-  { id: 8, title: 'Membrane',        medium: 'Bioart · Sensors',         year: '2022', rank: '6',  suit: '♠', isRed: false },
-  { id: 9, title: 'Afterimage',      medium: 'Photography · Code',       year: '2023', rank: '5',  suit: '♥', isRed: true  },
+  { id: 0, title: 'Resonance Wall',  medium: 'Interactive Installation', year: '2024', rank: 'A',  suit: '♠', isRed: false, desc: 'Sound-reactive wall sculpture blending sensor data with physical materials in real time.' },
+  { id: 1, title: 'Echo Chamber',    medium: 'Sound · Light',            year: '2023', rank: 'K',  suit: '♥', isRed: true,  desc: 'Immersive audio-visual room where visitor voices reshape shifting light topographies.' },
+  { id: 2, title: 'Liminal',         medium: 'Video Installation',       year: '2023', rank: 'Q',  suit: '♦', isRed: true,  desc: 'Multi-channel loop exploring threshold states between presence and memory.' },
+  { id: 3, title: 'Void Garden',     medium: 'Generative Art',           year: '2022', rank: 'J',  suit: '♣', isRed: false, desc: 'Algorithmically grown flora responding to live environmental and atmospheric data.' },
+  { id: 4, title: 'Phantom Grid',    medium: 'Mixed Reality',            year: '2024', rank: '10', suit: '♠', isRed: false, desc: 'AR layer superimposed on urban infrastructure — invisible architecture made legible.' },
+  { id: 5, title: 'Drift',           medium: 'Performance · Tech',       year: '2022', rank: '9',  suit: '♥', isRed: true,  desc: 'Live performance merging motion-capture data with an evolving generative soundscape.' },
+  { id: 6, title: 'Tessera',         medium: 'Interactive Sculpture',    year: '2023', rank: '8',  suit: '♦', isRed: true,  desc: 'Modular tiled structure that physically reorganizes itself through visitor touch.' },
+  { id: 7, title: 'Signal / Noise',  medium: 'Web Experience',           year: '2024', rank: '7',  suit: '♣', isRed: false, desc: 'Data streams rendered as evolving visual noise across a networked browser canvas.' },
+  { id: 8, title: 'Membrane',        medium: 'Bioart · Sensors',         year: '2022', rank: '6',  suit: '♠', isRed: false, desc: 'Living membrane cultivated in situ, responding to biometric sensor input from viewers.' },
+  { id: 9, title: 'Afterimage',      medium: 'Photography · Code',       year: '2023', rank: '5',  suit: '♥', isRed: true,  desc: 'Long-exposure portraits processed through generative decay and erosion algorithms.' },
 ]
 
 const N         = WORKS.length
@@ -28,10 +28,10 @@ const CENTER    = 4                    // index of focus card in initial spread
 const HALF_W    = (N * CARD_STEP) / 2 // wrap boundary
 
 // Scale by wrapped distance from focus
-const DIST_SCALE = [1.10, 0.95, 0.88, 0.82]
-function scaleFor(dist) {
-  return DIST_SCALE[Math.min(dist, DIST_SCALE.length - 1)]
-}
+const DIST_SCALE   = [1.14, 0.86, 0.76, 0.68]
+const DIST_OPACITY = [1.00, 0.50, 0.38, 0.28]
+function scaleFor(dist)   { return DIST_SCALE  [Math.min(dist, DIST_SCALE.length   - 1)] }
+function opacityFor(dist) { return DIST_OPACITY[Math.min(dist, DIST_OPACITY.length - 1)] }
 
 // ── Visual-magic extra falling cards ──────────────────────────────────────
 // Wave 1 (0-31):  edge-heavy, early delays  0.04-0.59
@@ -132,8 +132,9 @@ export default function Spread() {
       cards.forEach((card, i) => {
         const wrapDist = Math.min(Math.abs(i - fi), N - Math.abs(i - fi))
         const s = scaleFor(wrapDist)
-        if (animate) gsap.to(card,  { scale: s, duration: 0.35, ease: 'power2.out', overwrite: 'auto' })
-        else         gsap.set(card, { scale: s })
+        const o = opacityFor(wrapDist)
+        if (animate) gsap.to(card,  { scale: s, opacity: o, duration: 0.35, ease: 'power2.out', overwrite: 'auto' })
+        else         gsap.set(card, { scale: s, opacity: o })
       })
     }
 
@@ -224,9 +225,12 @@ export default function Spread() {
         return
       }
 
-      // Momentum scroll
+      // Momentum scroll → snap to center when settled
       const tick = () => {
-        if (Math.abs(velX) < 0.3) return
+        if (Math.abs(velX) < 0.3) {
+          animateToCard(focusIdxRef.current)
+          return
+        }
         carouselOffRef.current += velX
         velX *= 0.94
         updatePositions()
@@ -276,7 +280,7 @@ export default function Spread() {
           carouselOffRef.current = 0
           focusIdxRef.current = CENTER
           setFocusIdx(CENTER)
-          gsap.to(cards, { scale: 1, duration: 0.3, overwrite: 'auto' })
+          gsap.to(cards, { scale: 1, opacity: 1, duration: 0.3, overwrite: 'auto' })
         }
       },
     })
@@ -388,13 +392,7 @@ export default function Spread() {
       animation:          fallTl,
       invalidateOnRefresh: true,
       onEnter: () => {
-        // Snap cards to spread positions and reset extras above viewport,
-        // then invalidate so `to` tweens re-capture "from" from these values
-        cards.forEach((c, i) => gsap.set(c, {
-          x: finalX(i), y: FINAL_Y,
-          scale: scaleFor(Math.abs(i - CENTER)),
-          rotateZ: 0, opacity: 1,
-        }))
+        // Keep cards at their current positions — no snap
         EXTRA_DEFS.forEach((d, i) => {
           if (!extraEls[i]) return
           gsap.set(extraEls[i], {
@@ -406,9 +404,6 @@ export default function Spread() {
         gsap.set([t1El, t2El], { opacity: 0, y: 0 })
         gsap.set([...t1Words, ...t2Words], { opacity: 0, y: 24 })
         fallTl.invalidate()
-        carouselOffRef.current = 0
-        focusIdxRef.current    = CENTER
-        setFocusIdx(CENTER)
         exitActiveRef.current  = true
         setIsExitActive(true)
       },
@@ -469,12 +464,27 @@ export default function Spread() {
           <h2 className="sp__wm-title">THE SPREAD</h2>
         </div>
 
-        {/* Info bar */}
-        <div className="sp__info" style={{ opacity: isExitActive ? 0 : 1, transition: 'opacity 0.5s ease' }}>
+        {/* Info panel — editorial horizontal band */}
+        <div className="sp__info" style={{ opacity: isDone && !isExitActive ? 1 : 0, transition: 'opacity 0.5s ease' }}>
           <div key={focusIdx} className="sp__info-content">
-            <p className="sp__info-year">{work.year}</p>
-            <h2 className="sp__info-title">{work.title}</h2>
-            <p className="sp__info-medium">{work.medium}</p>
+            <div className="sp__info-grid">
+              <div className="sp__info-cell sp__info-cell--index">
+                <span className="sp__info-label">INDEX</span>
+                <span className="sp__info-num">{String(focusIdx + 1).padStart(2, '0')}</span>
+              </div>
+              <div className="sp__info-cell sp__info-cell--title">
+                <span className="sp__info-label">WORK</span>
+                <h2 className="sp__info-title">{work.title}</h2>
+              </div>
+              <div className="sp__info-cell sp__info-cell--year">
+                <span className="sp__info-label">YEAR</span>
+                <p className="sp__info-year">{work.year}</p>
+              </div>
+            </div>
+            {/* Category tag — floats below the border, in the open red zone */}
+            <div className="sp__info-cat-strip">
+              <span className="sp__info-cat">{work.medium}</span>
+            </div>
           </div>
         </div>
 
@@ -522,10 +532,25 @@ export default function Spread() {
           ))}
         </div>
 
-        {/* Drag hint */}
-        <p className="sp__hint" style={{ opacity: isDone && !isExitActive ? 1 : 0 }}>
-          ← &nbsp;DRAG TO EXPLORE&nbsp; →
-        </p>
+        {/* Spread frame — thick black lines bracket the carousel zone */}
+        <div
+          className="sp__spread-frame"
+          aria-hidden="true"
+          style={{ opacity: isDone && !isExitActive ? 1 : 0 }}
+        />
+
+        {/* Description — centred below the card strip */}
+        <div
+          className="sp__desc-area"
+          style={{ opacity: isDone && !isExitActive ? 1 : 0 }}
+        >
+          <div key={focusIdx} className="sp__desc-content">
+            <p className="sp__desc-text">{work.desc}</p>
+          </div>
+        </div>
+
+        {/* Drag hint (hidden — desc-area occupies the bottom zone) */}
+        <p className="sp__hint" style={{ opacity: 0 }} aria-hidden="true" />
 
         {/* Text block 1 — "STORY & BRAND": appears as cards rain and centre clears */}
         <div ref={exitText1Ref} className="sp__exit-text">

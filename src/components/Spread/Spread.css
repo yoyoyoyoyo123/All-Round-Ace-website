@@ -10,11 +10,11 @@
      can be animated away when Scene 4 needs to reveal from behind */
 }
 
-/* Fadeable black backdrop — only element in sticky that provides the dark bg */
+/* Fadeable red backdrop — primary red becomes transparent so Scene 4 shows through */
 .sp__bg {
   position: absolute;
   inset: 0;
-  background: var(--color-black);
+  background-color: var(--color-red);
   z-index: 0;
   pointer-events: none;
 }
@@ -46,7 +46,7 @@
   font-family: var(--font-heading);
   font-size: clamp(0.65rem, 0.85vw, 0.82rem);
   letter-spacing: 0.5em;
-  color: rgba(204, 0, 0, 0.4);
+  color: rgba(0, 0, 0, 0.28);
   margin-bottom: 0.4rem;
 }
 
@@ -54,53 +54,171 @@
   font-family: var(--font-heading);
   font-size: clamp(5rem, 10vw, 13rem);
   line-height: 0.85;
-  color: rgba(255, 255, 255, 0.04);
+  color: rgba(0, 0, 0, 0.07);
   letter-spacing: 0.05em;
 }
 
-/* ── Info bar ───────────────────────────────── */
+/* ── Info panel — editorial horizontal band ─── */
 
 .sp__info {
   position: absolute;
-  top: max(5.5rem, calc(64px + 2rem));
-  left: clamp(2rem, 4vw, 4rem);
+  top: clamp(3.0rem, 5vh, 4.5rem);
+  bottom: calc(40vh + 220px);   /* extends exactly to spread-frame top line */
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
   pointer-events: none;
   z-index: 5;
-  overflow: hidden;
 }
 
 @keyframes sp-slide-up {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
 .sp__info-content {
-  animation: sp-slide-up 0.4s ease forwards;
+  animation: sp-slide-up 0.32s ease forwards;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
-.sp__info-year {
+/* 3-column editorial grid: index | title | year */
+.sp__info-grid {
+  display: grid;
+  grid-template-columns:
+    clamp(5.5rem, 8.5vw, 10rem)
+    1fr
+    clamp(8rem, 13vw, 15rem);
+  /* no border-top — only the bottom line separates info from open space */
+  border-bottom: 2px solid rgba(0, 0, 0, 0.68);
+}
+
+.sp__info-cell {
+  padding:
+    clamp(1.4rem, 2.8vh, 2.4rem)
+    clamp(1.2rem, 2.4vw, 2.2rem)
+    clamp(1.4rem, 2.8vh, 2.4rem);
+  border-right: 2px solid rgba(0, 0, 0, 0.60);
+  display: flex;
+  flex-direction: column;
+  gap: 0.42rem;
+}
+
+.sp__info-cell:last-child {
+  border-right: none;
+}
+
+/* Micro-label above each column's content */
+.sp__info-label {
   font-family: var(--font-heading);
-  font-size: clamp(0.6rem, 0.8vw, 0.78rem);
-  letter-spacing: 0.42em;
-  color: rgba(204, 0, 0, 0.75);
-  margin-bottom: 0.5rem;
+  font-size: clamp(0.48rem, 0.62vw, 0.58rem);
+  letter-spacing: 0.46em;
+  color: rgba(0, 0, 0, 0.36);
+  text-transform: uppercase;
+  flex-shrink: 0;
 }
 
+/* Large zero-padded index number */
+.sp__info-num {
+  font-family: var(--font-heading);
+  font-size: clamp(2.2rem, 4.8vw, 5rem);
+  line-height: 1;
+  color: rgba(0, 0, 0, 0.82);
+  letter-spacing: -0.04em;
+  margin-top: 0.25rem;
+}
+
+/* Project title — big and black */
 .sp__info-title {
   font-family: var(--font-heading);
-  font-size: clamp(2.5rem, 5vw, 7rem);
+  font-size: clamp(1.9rem, 4.2vw, 4.8rem);
   line-height: 0.88;
-  color: rgba(255, 255, 255, 0.92);
-  letter-spacing: 0.02em;
-  margin-bottom: 0.7rem;
+  color: #0A0A0A;
+  letter-spacing: 0.01em;
+  margin: 0.2rem 0 0;
 }
 
-.sp__info-medium {
+/* Year in the third column */
+.sp__info-year {
+  font-family: var(--font-heading);
+  font-size: clamp(1.5rem, 3.2vw, 3.8rem);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: rgba(0, 0, 0, 0.82);
+  margin-top: 0.25rem;
+}
+
+/* ── Category strip — floats below the info border, above spread frame ── */
+
+.sp__info-cat-strip {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.sp__info-cat {
+  font-family: var(--font-heading);
+  font-size: clamp(1.5rem, 3.2vw, 3.8rem);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: rgba(0, 0, 0, 0.82);
+  text-transform: uppercase;
+}
+
+/* ── Card spread frame — thick lines brace the carousel zone ─── */
+
+.sp__spread-frame {
+  position: absolute;
+  left: 0;
+  right: 0;
+  /*
+   * Cards sit at FINAL_Y = 60vh − 124px (top edge of unscaled card).
+   * Centre card scales to 1.10×, so its top = 60vh − 248*1.10/2 = 60vh − 136.4px.
+   * We want ~30px breathing room above the scaled top and below the scaled bottom.
+   */
+  top:    calc(60vh - 220px);   /* moved up to tighten the category zone */
+  height: calc(8vh + 364px);   /* compensate so bottom still covers pile */
+  border-top:    2px solid rgba(0, 0, 0, 0.68);
+  border-bottom: 2px solid rgba(0, 0, 0, 0.68);
+  pointer-events: none;
+  z-index: 1;
+  transition: opacity 0.5s ease;
+}
+
+/* ── Description area — sits between frame bottom and viewport ─ */
+
+.sp__desc-area {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top:    calc(68vh + 144px);   /* same as spread-frame bottom */
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 5;
+  transition: opacity 0.5s ease;
+}
+
+.sp__desc-content {
+  animation: sp-slide-up 0.32s ease forwards;
+  text-align: center;
+  padding: 0 clamp(3rem, 10vw, 14rem);
+  max-width: 60rem;
+}
+
+.sp__desc-text {
   font-family: var(--font-body);
   font-style: italic;
-  font-size: clamp(0.8rem, 1vw, 0.95rem);
-  color: rgba(255, 255, 255, 0.38);
-  letter-spacing: 0.06em;
+  font-size: clamp(0.74rem, 1.1vw, 0.92rem);
+  line-height: 1.65;
+  color: rgba(0, 0, 0, 0.56);
+  letter-spacing: 0.03em;
 }
 
 /* ── Card stage ─────────────────────────────── */
@@ -121,16 +239,16 @@
   width: 165px;
   height: 248px;
   will-change: transform;
-  transition: box-shadow 0.4s ease;
+  transition: box-shadow 0.35s ease;
   border-radius: var(--radius-card);
 }
 
 .sp__card.is-focus {
   z-index: 10;
   box-shadow:
-    0 0 0 1px rgba(80, 215, 235, 0.28),
-    0 0 18px rgba(80, 215, 235, 0.18),
-    0 0 48px rgba(80, 215, 235, 0.07);
+    0 0 0 1.5px rgba(255, 255, 255, 0.72),
+    0 0 18px rgba(255, 255, 255, 0.22),
+    0 0 44px rgba(0, 0, 0, 0.32);
 }
 
 /* ── Card face ──────────────────────────────── */
@@ -184,20 +302,10 @@
 .sp__card.is-red .sp__card-rank,
 .sp__card.is-red .sp__card-suit-sm { color: rgba(204, 0, 0, 0.80); }
 
-/* ── Drag hint ──────────────────────────────── */
+/* ── Drag hint (kept for fall-back, normally hidden by desc-area) ── */
 
 .sp__hint {
-  position: absolute;
-  bottom: clamp(1.5rem, 3vh, 2.5rem);
-  left: 50%;
-  transform: translateX(-50%);
-  font-family: var(--font-heading);
-  font-size: clamp(0.52rem, 0.65vw, 0.62rem);
-  letter-spacing: 0.45em;
-  color: rgba(255, 255, 255, 0.18);
-  white-space: nowrap;
-  pointer-events: none;
-  transition: opacity 0.6s ease;
+  display: none; /* desc-area now fills the bottom zone */
 }
 
 /* ── Exit transition text ───────────────────── */
@@ -217,7 +325,7 @@
   font-family: var(--font-heading);
   font-size: clamp(0.65rem, 0.85vw, 0.82rem);
   letter-spacing: 0.52em;
-  color: rgba(204, 0, 0, 0.85);
+  color: rgba(255, 255, 255, 0.62);
   margin-bottom: 0.5rem;
 }
 
@@ -241,7 +349,7 @@
 .sp__exit-divider {
   width: 2.4rem;
   height: 1px;
-  background: rgba(204, 0, 0, 0.45);
+  background: rgba(255, 255, 255, 0.38);
   margin: 1.0rem auto 0;
 }
 
