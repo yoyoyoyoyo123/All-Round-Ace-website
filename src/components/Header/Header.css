@@ -1,3 +1,32 @@
+/* ── Nav transition overlay ─────────────────────────────────── */
+
+.nt__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  will-change: transform;
+  pointer-events: none;
+  visibility: hidden;   /* GSAP autoAlpha controls this */
+  opacity: 0;
+}
+
+.nt__text {
+  font-family: var(--font-heading);
+  font-size: clamp(6rem, 52vh, 58vh);
+  line-height: 0.82;
+  white-space: nowrap;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* ─────────────────────────────────────────────────────────── */
+
 .site-header {
   position: fixed;
   top: 0;

@@ -88,6 +88,52 @@ const EXTRA_DEFS = Array.from({ length: EXTRA_N }, (_, i) => {
   }
 })
 
+// Scramble → resolve: characters glitch then lock in left-to-right
+const SCRAMBLE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#@!%&?'
+const randCh = () => SCRAMBLE_CHARS[Math.floor(Math.random() * SCRAMBLE_CHARS.length)]
+
+function GlitchText({ text, startDelay = 0, scrambleMs = 260, resolveMs = 380 }) {
+  const [display, setDisplay] = useState(() =>
+    [...text].map(c => (c === ' ' ? ' ' : randCh()))
+  )
+
+  useEffect(() => {
+    let rafId
+    let startTime = null
+    const delayMs = startDelay * 1000
+
+    const tick = ts => {
+      if (!startTime) startTime = ts
+      const elapsed = ts - startTime
+
+      if (elapsed < delayMs) {
+        setDisplay([...text].map(c => (c === ' ' ? ' ' : randCh())))
+      } else {
+        const prog = Math.min((elapsed - delayMs) / resolveMs, 1)
+        const locked = Math.floor(prog * text.length)
+        setDisplay([...text].map((c, i) => {
+          if (c === ' ') return ' '
+          return i < locked ? c : randCh()
+        }))
+        if (locked >= text.length) return
+      }
+
+      rafId = requestAnimationFrame(tick)
+    }
+
+    rafId = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(rafId)
+  }, [text, startDelay, resolveMs])
+
+  return (
+    <>
+      {display.map((ch, i) => (
+        <span key={i} className="sp__tw-char" aria-hidden="true">{ch}</span>
+      ))}
+    </>
+  )
+}
+
 export default function Spread() {
   const sectionRef     = useRef(null)
   const stageRef       = useRef(null)
@@ -277,9 +323,6 @@ export default function Spread() {
         } else {
           spreadDoneRef.current = false
           setIsDone(false)
-          carouselOffRef.current = 0
-          focusIdxRef.current = CENTER
-          setFocusIdx(CENTER)
           gsap.to(cards, { scale: 1, opacity: 1, duration: 0.3, overwrite: 'auto' })
         }
       },
@@ -470,20 +513,28 @@ export default function Spread() {
             <div className="sp__info-grid">
               <div className="sp__info-cell sp__info-cell--index">
                 <span className="sp__info-label">INDEX</span>
-                <span className="sp__info-num">{String(focusIdx + 1).padStart(2, '0')}</span>
+                <span className="sp__info-num" aria-label={String(focusIdx + 1).padStart(2, '0')}>
+                  <GlitchText text={String(focusIdx + 1).padStart(2, "00")} resolveMs={220} />
+                </span>
               </div>
               <div className="sp__info-cell sp__info-cell--title">
                 <span className="sp__info-label">WORK</span>
-                <h2 className="sp__info-title">{work.title}</h2>
+                <h2 className="sp__info-title" aria-label={work.title}>
+                  <GlitchText text={work.title} resolveMs={400} />
+                </h2>
               </div>
               <div className="sp__info-cell sp__info-cell--year">
                 <span className="sp__info-label">YEAR</span>
-                <p className="sp__info-year">{work.year}</p>
+                <p className="sp__info-year" aria-label={work.year}>
+                  <GlitchText text={work.year} resolveMs={220} />
+                </p>
               </div>
             </div>
             {/* Category tag — floats below the border, in the open red zone */}
             <div className="sp__info-cat-strip">
-              <span className="sp__info-cat">{work.medium}</span>
+              <span className="sp__info-cat" aria-label={work.medium}>
+                <GlitchText text={work.medium} startDelay={0.12} resolveMs={450} />
+              </span>
             </div>
           </div>
         </div>

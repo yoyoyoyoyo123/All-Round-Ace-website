@@ -78,10 +78,14 @@
 }
 
 .sp__info-content {
-  animation: sp-slide-up 0.32s ease forwards;
   flex: 1;
   display: flex;
   flex-direction: column;
+}
+
+/* ── Glitch / scramble character unit ── */
+.sp__tw-char {
+  display: inline;
 }
 
 /* 3-column editorial grid: index | title | year */

@@ -299,10 +299,14 @@ export default function DealSuits() {
         panelEls.forEach((el, i) => gsap.set(el, { zIndex: panelEls.length - i }))
       },
       onLeaveBack: () => {
-        // Returned to Scene 2 linger zone — restore panel interactivity + stacking
+        // Snap p1tl to start immediately — don't rely on the scrub's 1s ease-back.
+        // Without this, panels visually stick mid-collapse for ~1s after the scroll
+        // crosses back into the Scene 2 linger zone.
+        p1tl.progress(0, true)   // suppressEvents=true, no timeline callbacks
+        // Restore panel transforms and state
         expandedRef.current = true
         gsap.set(panelsRef.current, { pointerEvents: 'auto' })
-        panelEls.forEach(el => gsap.set(el, { zIndex: 'auto' }))
+        gsap.set(panelEls, { x: 0, y: 0, scale: 1, zIndex: 'auto' })
         panelEls.forEach(el => { el.style.opacity = '1' })
         watermark.style.opacity = '1'
         setTrOpacity(0)
@@ -363,7 +367,15 @@ export default function DealSuits() {
     const STREAM_CHARS = ['A','K','Q','J','10','9','8','7','6','5','4','3','2','♠','♥','♦','♣']
 
     const startRingBg = () => {
-      if (canvasRafRef.current) return
+      // Kill any in-progress fade-out and immediately start fading in.
+      // Do this BEFORE the canvas-running guard so re-entry after a
+      // partial fade-out still brings the bg back to full opacity.
+      gsap.killTweensOf(ringBgRef.current)
+      gsap.to(ringBgRef.current, { opacity: 1, duration: 1.4, ease: 'power2.out' })
+      gsap.killTweensOf(sloganBdRef.current)
+      gsap.to(sloganBdRef.current, { opacity: 1, duration: 1.0, ease: 'power2.out', delay: 0.3 })
+
+      if (canvasRafRef.current) return   // canvas already running — opacity tweens above are all we need
       const canvas = canvasRef.current
       if (!canvas) return
       canvas.width  = vw
@@ -464,7 +476,7 @@ export default function DealSuits() {
       }
 
       draw()
-      gsap.to(ringBgRef.current, { opacity: 1, duration: 1.4, ease: 'power2.out' })
+      // (ring-bg fade-in already started at the top of startRingBg)
 
       // Slogan: backdrop fades in first, then lines flip up
       const reveals = sloganRef.current?.querySelectorAll('.ds__slogan-reveal')
@@ -487,6 +499,10 @@ export default function DealSuits() {
         canvasMouseRef.current()
         canvasMouseRef.current = null
       }
+      // Hard-reset opacity — safety net for any interrupted tweens
+      if (ringBgRef.current)  gsap.set(ringBgRef.current,  { opacity: 0 })
+      if (sloganBdRef.current) gsap.set(sloganBdRef.current, { opacity: 0 })
+      if (sloganRef.current)  gsap.set(sloganRef.current,  { opacity: 0 })
     }
 
     const startRotation = () => {
@@ -530,10 +546,12 @@ export default function DealSuits() {
           y: '108%', duration: 0.38, stagger: 0.08, ease: 'power2.in',
         })
       }
+      gsap.killTweensOf(sloganBdRef.current)   // kill any in-progress fade-in before fading out
       gsap.to(sloganBdRef.current, {
         opacity: 0, duration: 0.55, ease: 'power2.in', delay: 0.42,
         onComplete: () => { if (sloganRef.current) gsap.set(sloganRef.current, { opacity: 0 }) },
       })
+      gsap.killTweensOf(ringBgRef.current)   // kill any in-progress fade-in before fading out
       gsap.to(ringBgRef.current, { opacity: 0, duration: 0.9, ease: 'power2.in', onComplete: stopRingBg })
     }
 
@@ -556,6 +574,14 @@ export default function DealSuits() {
         }
         gsap.killTweensOf(p2tl)
         p2tl.progress(1, true)
+        // Reset trAngles to initial positions so the first rotation tick
+        // starts from where p2tl.progress(1) placed the cards — prevents jump.
+        for (let i = 0; i < INNER_N; i++) {
+          trAngles[i] = (i * 2 * Math.PI / INNER_N) - Math.PI / 2
+        }
+        for (let i = 0; i < OUTER_N; i++) {
+          trAngles[INNER_N + i] = (i * 2 * Math.PI / OUTER_N) - Math.PI / 2
+        }
         startRotation()
       },
       onEnterBack: startRotation,

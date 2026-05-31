@@ -2,6 +2,22 @@ import { useEffect, useState } from 'react'
 import './RoyalFlush.css'
 import AceImg      from '../../assets/ace.png'
 import CardbackImg from '../../assets/Cardback.png'
+import SpadeImg    from '../../assets/4suits/spade.svg'
+
+// ── Ace 1 portrait photos ────────────────────────────────────────────────────
+import Ace1P1 from '../../assets/about/ace1/ring1.jpg'
+import Ace1P2 from '../../assets/about/ace1/ring2.jpg'
+import Ace1P3 from '../../assets/about/ace1/ring3.jpg'
+import Ace1P4 from '../../assets/about/ace1/ring4.jpg'
+
+// ── Per-member portrait photo sets (null = use colour flicker until photos ready) ──
+const MEMBER_PHOTOS = [
+  [Ace1P1, Ace1P2, Ace1P3, Ace1P4],  // KENNY
+  [Ace1P3, Ace1P1, Ace1P4, Ace1P2],  // MEMBER 2 — rotated order
+  [Ace1P2, Ace1P4, Ace1P1, Ace1P3],  // MEMBER 3 — rotated order
+  [Ace1P4, Ace1P3, Ace1P2, Ace1P1],  // MEMBER 4 — reversed order
+  [Ace1P2, Ace1P1, Ace1P4, Ace1P3],  // MEMBER 5 — rotated order
+]
 
 // ── Member data (placeholder — swap real names/images later) ─────────────────
 const MEMBERS = [
@@ -39,15 +55,17 @@ const FLASH_FRAMES = ['#12121e', '#0e1820', '#1a1226', '#0a1218', '#1e1422', '#0
 // ─────────────────────────────────────────────────────────────────────────────
 //  MemberCard
 // ─────────────────────────────────────────────────────────────────────────────
-function MemberCard({ member, index }) {
-  const [frame,   setFrame]   = useState(index % FLASH_FRAMES.length)
-  const [hovered, setHovered] = useState(false)
+function MemberCard({ member, index, photos }) {
+  const frameCount = photos ? photos.length : FLASH_FRAMES.length
+  const [frameIdx, setFrameIdx] = useState(index % frameCount)
+  const [hovered,  setHovered]  = useState(false)
 
+  // Static when not hovered; flicker on hover
   useEffect(() => {
-    if (hovered) return
-    const id = setInterval(() => setFrame(f => (f + 1) % FLASH_FRAMES.length), 75)
+    if (!hovered) return
+    const id = setInterval(() => setFrameIdx(f => (f + 1) % frameCount), 160)
     return () => clearInterval(id)
-  }, [hovered])
+  }, [frameCount, hovered])
 
   return (
     <article
@@ -55,10 +73,30 @@ function MemberCard({ member, index }) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <div className="rf__member-face" style={{ backgroundColor: FLASH_FRAMES[frame] }}>
+      {/* Portrait — photo cycling or colour flicker */}
+      <div
+        className="rf__member-face"
+        style={photos ? undefined : { backgroundColor: FLASH_FRAMES[frameIdx] }}
+      >
+        {photos && (
+          <img
+            src={photos[frameIdx]}
+            className="rf__member-face-img"
+            alt=""
+            draggable={false}
+          />
+        )}
+        {/* Corner marks inside face so scanlines layer over them */}
+        <div className="rf__corner rf__corner--tl" aria-hidden="true">
+          <img src={SpadeImg} className="rf__corner-suit" alt="" draggable={false} />
+        </div>
+        <div className="rf__corner rf__corner--br" aria-hidden="true">
+          <img src={SpadeImg} className="rf__corner-suit" alt="" draggable={false} />
+        </div>
         <div className="rf__member-face-scanlines" aria-hidden="true" />
       </div>
-      <img src={AceImg} className="rf__member-ace" alt="" aria-hidden="true" />
+
+      {/* Info — slides up on hover */}
       <div className="rf__member-info">
         <p  className="rf__member-role">{member.role}</p>
         <h3 className="rf__member-name">{member.name}</h3>
@@ -103,12 +141,22 @@ export default function RoyalFlush() {
           ))}
         </div>
 
+        {/* Section header */}
+        <div className="rf__header">
+          <p className="rf__header-eyebrow">SCENE IV &nbsp;·&nbsp; THE ACE</p>
+          <h2 className="rf__header-title">THE ROYAL FLUSH.</h2>
+          <div className="rf__header-rule" />
+        </div>
+
         {/* 5 face-up member cards */}
         <div className="rf__members">
           {MEMBERS.map((m, i) => (
-            <MemberCard key={m.name} member={m} index={i} />
+            <MemberCard key={m.name} member={m} index={i} photos={MEMBER_PHOTOS[i]} />
           ))}
         </div>
+
+        {/* Grain overlay — unifies the scene with film texture */}
+        <div className="rf__grain" aria-hidden="true" />
 
         {/* Footer branding */}
         <footer className="rf__footer">
